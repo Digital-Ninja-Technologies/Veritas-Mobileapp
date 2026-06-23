@@ -9,6 +9,7 @@ import 'payout_methods.dart';
 import 'pin_flow.dart';
 import 'change_password.dart';
 import 'legal.dart';
+import 'preference_picker.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -110,6 +111,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         icon: _iconBox(Icons.key_outlined, AppColors.lightBg, AppColors.darkText),
                         label: 'Change password',
                         onTap: () => _push(const ChangePasswordScreen()),
+                        showDivider: false,
+                      ),
+                    ]),
+                    const SizedBox(height: 20),
+                    const VSectionLabel('Preferences'),
+                    const SizedBox(height: 10),
+                    _Card(children: [
+                      VMenuItem(
+                        icon: _iconBox(Icons.language, const Color(0xFFE8F0FF), AppColors.blue),
+                        label: 'Language',
+                        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Text(user.language, style: const TextStyle(fontSize: 13, color: AppColors.subText)),
+                          const SizedBox(width: 6),
+                          const Icon(Icons.chevron_right, color: AppColors.mutedText, size: 18),
+                        ]),
+                        onTap: () => _push(const PreferencePickerScreen(pickerKey: 'language')),
+                      ),
+                      VMenuItem(
+                        icon: _iconBox(Icons.palette_outlined, const Color(0xFFFFF3CC), AppColors.gold),
+                        label: 'Appearance',
+                        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Text(user.appearance, style: const TextStyle(fontSize: 13, color: AppColors.subText)),
+                          const SizedBox(width: 6),
+                          const Icon(Icons.chevron_right, color: AppColors.mutedText, size: 18),
+                        ]),
+                        onTap: () => _push(const PreferencePickerScreen(pickerKey: 'appearance')),
                         showDivider: false,
                       ),
                     ]),
