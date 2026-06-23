@@ -1,0 +1,31 @@
+name: veritas_app
+description: Veritas — escrow fintech app for freelancers & clients
+publish_to: 'none'
+version: 2.4.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+  go_router: ^13.2.1
+  google_fonts: ^6.2.1
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  build_runner: ^2.4.9
+  riverpod_generator: ^2.4.0
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/vault-2.png
+    - assets/images/vault-lock.png
+    - assets/images/vault-3.png
+    - assets/images/vault-trust.png
