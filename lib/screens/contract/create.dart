@@ -370,12 +370,13 @@ class _CreateEscrowScreenState extends ConsumerState<CreateEscrowScreen> {
     final f = _freelancer!;
     final total = _total;
     final firstName = f.name.split(' ').first;
-    final extra = f.tag.isEmpty ? " We'll send them an invite to accept." : '';
+    final isInvite = f.tag.isEmpty && f.email.contains('@');
+    final inviteNote = isInvite ? " We'll send $firstName an email — they'll see the contract the moment they create an account." : '';
 
     final ok = await showVConfirm(
       context,
       title: 'Fund ${formatUSD(total)} into escrow?',
-      body: 'This locks ${formatUSD(total)} across ${_milestones.length} milestones for $firstName. They can\'t access it until you release each one.$extra',
+      body: 'This locks ${formatUSD(total)} across ${_milestones.length} milestones.$inviteNote${isInvite ? '' : ' $firstName can\'t access it until you release each one.'}',
       confirmLabel: 'Fund escrow',
     );
     if (ok != true || !mounted) return;
@@ -385,7 +386,7 @@ class _CreateEscrowScreenState extends ConsumerState<CreateEscrowScreen> {
       id: 'c${DateTime.now().millisecondsSinceEpoch}',
       project: _projectCtrl.text.trim(),
       clientName: ref.read(userProvider).fullName,
-      freelancerName: f.name,
+      freelancerName: isInvite ? f.email : f.name,
       clientTag: ref.read(userProvider).veritasTag != null ? '@${ref.read(userProvider).veritasTag}' : '',
       freelancerTag: f.handle,
       totalAmount: total,
@@ -393,12 +394,18 @@ class _CreateEscrowScreenState extends ConsumerState<CreateEscrowScreen> {
       avatarBg: f.avBg,
       avatarFg: f.avFg,
       initials: f.initials,
+      inviteeEmail: isInvite ? f.email : null,
     );
 
     ref.read(contractsProvider.notifier).addContract(contract);
     ref.read(userProvider.notifier).debitClient(total);
     Navigator.of(context).pop();
-    showVToast(context, 'Escrow funded — $firstName has been notified!');
+
+    if (isInvite) {
+      showVToast(context, 'Invite sent to ${f.email} — contract activates when they join!');
+    } else {
+      showVToast(context, 'Escrow funded — $firstName has been notified!');
+    }
   }
 }
 

@@ -179,6 +179,7 @@ Widget _BadgeFor(String badge) {
     case 'Complete': bg = AppColors.completeBadgeBg; fg = AppColors.completeBadgeFg; break;
     case 'In dispute': bg = const Color(0xFFFCE2E0); fg = AppColors.redDark; break;
     case 'In review': bg = const Color(0xFFFFF3CC); fg = AppColors.gold; break;
+    case 'Awaiting': bg = const Color(0xFFF0EDFF); fg = const Color(0xFF6E3FCF); break;
     default: bg = AppColors.activeBadgeBg; fg = AppColors.greenDark;
   }
   return VStatusBadge(label: badge, bg: bg, fg: fg);
@@ -188,6 +189,7 @@ Color _barColor(String badge) {
   switch (badge) {
     case 'Complete': return AppColors.blue;
     case 'In dispute': return AppColors.red;
+    case 'Awaiting': return const Color(0xFF6E3FCF);
     default: return AppColors.greenDark;
   }
 }

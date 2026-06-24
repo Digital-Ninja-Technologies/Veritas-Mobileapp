@@ -59,6 +59,30 @@ class ContractDetailScreen extends ConsumerWidget {
                         ])),
                       ],
                     ),
+                    // Pending invite banner
+                    if (contract.isPendingAcceptance) ...[
+                      const SizedBox(height: 14),
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0EDFF),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFD4CCFF)),
+                        ),
+                        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          const Icon(Icons.mail_outline, color: Color(0xFF6E3FCF), size: 19),
+                          const SizedBox(width: 11),
+                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            const Text('Awaiting freelancer', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF3D1F8C))),
+                            const SizedBox(height: 3),
+                            Text(
+                              'An invite was sent to ${contract.inviteeEmail}. The contract will activate the moment they create a Veritas account with that email.',
+                              style: const TextStyle(fontSize: 12, color: Color(0xFF5C4AAA), height: 1.5),
+                            ),
+                          ])),
+                        ]),
+                      ),
+                    ],
                     const SizedBox(height: 18),
                     // Dark value card
                     Container(
@@ -433,6 +457,7 @@ Widget _BadgeFor(String badge) {
     case 'Complete': bg = AppColors.completeBadgeBg; fg = AppColors.completeBadgeFg; break;
     case 'In dispute': bg = const Color(0xFFFCE2E0); fg = AppColors.redDark; break;
     case 'In review': bg = const Color(0xFFFFF3CC); fg = AppColors.gold; break;
+    case 'Awaiting': bg = const Color(0xFFF0EDFF); fg = const Color(0xFF6E3FCF); break;
     default: bg = AppColors.activeBadgeBg; fg = AppColors.greenDark;
   }
   return Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)), child: Text(badge, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: fg)));

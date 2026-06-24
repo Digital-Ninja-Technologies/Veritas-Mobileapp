@@ -118,6 +118,18 @@ class _CreatePasswordScreenState extends ConsumerState<CreatePasswordScreen> {
                                 country: widget.country,
                                 password: _pwdCtrl.text,
                               );
+
+                              // Activate any escrow contracts sent to this email
+                              // before the user had a Veritas account.
+                              final claimed = ref.read(contractsProvider.notifier)
+                                  .claimContractsByEmail(widget.email);
+                              if (claimed > 0) {
+                                ref.read(notificationsProvider.notifier).addPendingContractNotif(
+                                  claimed,
+                                  widget.firstName,
+                                );
+                              }
+
                               ref.read(isLoggedInProvider.notifier).state = true;
                               ref.read(onboardingCompleteProvider.notifier).state = true;
                               Navigator.of(context).pushAndRemoveUntil(

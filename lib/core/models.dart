@@ -196,6 +196,8 @@ class EscrowContract {
   final String avatarBg;
   final String avatarFg;
   final String initials;
+  // Non-null when the freelancer was invited by email and hasn't joined Veritas yet.
+  final String? inviteeEmail;
 
   EscrowContract({
     required this.id,
@@ -209,7 +211,10 @@ class EscrowContract {
     required this.avatarBg,
     required this.avatarFg,
     required this.initials,
+    this.inviteeEmail,
   });
+
+  bool get isPendingAcceptance => inviteeEmail != null;
 
   int get completedMilestones =>
       milestones.where((m) => m.status == MilestoneStatus.released).length;
@@ -222,6 +227,7 @@ class EscrowContract {
       milestones.isEmpty ? 0 : completedMilestones / milestones.length;
 
   String get statusBadge {
+    if (isPendingAcceptance) return 'Awaiting';
     if (milestones.every((m) => m.status == MilestoneStatus.released)) return 'Complete';
     if (milestones.any((m) => m.status == MilestoneStatus.inDispute)) return 'In dispute';
     if (milestones.any((m) => m.status == MilestoneStatus.inReview || m.status == MilestoneStatus.submitted)) return 'In review';
@@ -229,7 +235,7 @@ class EscrowContract {
     return 'Active';
   }
 
-  EscrowContract copyWith({List<MilestoneModel>? milestones}) {
+  EscrowContract copyWith({List<MilestoneModel>? milestones, bool clearInvitee = false}) {
     return EscrowContract(
       id: id,
       project: project,
@@ -242,6 +248,7 @@ class EscrowContract {
       avatarBg: avatarBg,
       avatarFg: avatarFg,
       initials: initials,
+      inviteeEmail: clearInvitee ? null : this.inviteeEmail,
     );
   }
 }

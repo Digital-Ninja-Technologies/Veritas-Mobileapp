@@ -119,6 +119,21 @@ class ContractsNotifier extends StateNotifier<List<EscrowContract>> {
       return c.copyWith(milestones: milestones);
     }).toList();
   }
+
+  // Activates all contracts that were pending an invited user with this email.
+  // Returns the count of contracts that were claimed.
+  int claimContractsByEmail(String email) {
+    final lower = email.toLowerCase();
+    int count = 0;
+    state = state.map((c) {
+      if (c.inviteeEmail?.toLowerCase() == lower) {
+        count++;
+        return c.copyWith(clearInvitee: true);
+      }
+      return c;
+    }).toList();
+    return count;
+  }
 }
 
 // Transactions
@@ -153,6 +168,23 @@ class NotificationsNotifier extends StateNotifier<List<NotificationModel>> {
       time: n.time,
       isRead: true,
     )).toList();
+  }
+
+  void addPendingContractNotif(int count, String firstName) {
+    final msg = count == 1
+        ? '$firstName, you have an escrow contract waiting for you.'
+        : '$firstName, you have $count escrow contracts waiting for you.';
+    state = [
+      NotificationModel(
+        id: 'notif_${DateTime.now().millisecondsSinceEpoch}',
+        title: count == 1 ? 'Escrow contract received' : '$count escrow contracts received',
+        subtitle: msg,
+        kind: 'escrow',
+        time: DateTime.now(),
+        isRead: false,
+      ),
+      ...state,
+    ];
   }
 
   bool get hasUnread => state.any((n) => !n.isRead);
