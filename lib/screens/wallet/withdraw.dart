@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme.dart';
 import '../../core/models.dart';
 import '../../providers/app_state.dart';
+import '../../services/api_client.dart';
 import '../../widgets/common.dart';
 
 class WithdrawScreen extends ConsumerStatefulWidget {
@@ -15,19 +16,36 @@ class WithdrawScreen extends ConsumerStatefulWidget {
 class _WithdrawScreenState extends ConsumerState<WithdrawScreen> {
   final _amountCtrl = TextEditingController();
   bool _success = false;
+  bool _loading = false;
   String _successRef = '';
 
+  // The 0.9% fee here is a local display estimate only — the backend
+  // withdrawal itself doesn't charge or deduct a platform fee, this just
+  // mirrors what the existing UI already showed pre-integration.
   double get _amount => double.tryParse(_amountCtrl.text.replaceAll(',', '')) ?? 0;
   bool get _isFreelancer => ref.read(userProvider).role == UserRole.freelancer;
   double get _fee => _amount * 0.009;
   double get _netAmount => _amount - _fee;
   double get _ngnAmount => _netAmount * fxRate;
   double get _maxBalance => ref.read(userProvider).balance;
-  bool get _valid => _amount > 0 && _amount <= _maxBalance;
+  PayoutAccount? get _defaultAccount =>
+      ref.read(userProvider).payoutAccounts.where((a) => a.isDefault).firstOrNull;
+  bool get _valid =>
+      _amount > 0 && _amount <= _maxBalance && (_defaultAccount?.bankCode.isNotEmpty ?? false);
 
   @override
   Widget build(BuildContext context) {
-    if (_success) return _SuccessView(isFreelancer: _isFreelancer, amount: _netAmount, ngnAmount: _ngnAmount, ref2: _successRef);
+    if (_success) {
+      return _SuccessView(
+        isFreelancer: _isFreelancer,
+        amount: _netAmount,
+        ngnAmount: _ngnAmount,
+        ref2: _successRef,
+        bankLabel: _defaultAccount == null
+            ? ''
+            : '${_defaultAccount!.bankName} ${_defaultAccount!.accountNumber}',
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -136,10 +154,18 @@ class _WithdrawScreenState extends ConsumerState<WithdrawScreen> {
                         Text('No conversion · No hidden charges', style: TextStyle(fontSize: 12.5, color: AppColors.subText)),
                       ]),
                     ],
+                    if (_defaultAccount != null && _defaultAccount!.bankCode.isEmpty) ...[
+                      const SizedBox(height: 10),
+                      const Row(children: [
+                        Icon(Icons.warning_amber_outlined, size: 14, color: AppColors.gold),
+                        SizedBox(width: 6),
+                        Expanded(child: Text('This payout account is missing a bank code — edit it under Payout methods before withdrawing.', style: TextStyle(fontSize: 12.5, color: AppColors.gold))),
+                      ]),
+                    ],
                     const SizedBox(height: 24),
                     VButton(
-                      label: 'Confirm withdrawal',
-                      onTap: _valid ? _confirm : null,
+                      label: _loading ? 'Processing...' : 'Confirm withdrawal',
+                      onTap: _valid && !_loading ? _confirm : null,
                     ),
                   ],
                 ),
@@ -152,19 +178,43 @@ class _WithdrawScreenState extends ConsumerState<WithdrawScreen> {
   }
 
   void _confirm() async {
+    final account = _defaultAccount;
+    if (account == null || account.bankCode.isEmpty) {
+      showVToast(context, 'Add a payout account with a bank code first.');
+      return;
+    }
+
     final ok = await showVConfirm(
       context,
       title: 'Withdraw ${formatUSD(_amount)}?',
       body: _isFreelancer
-          ? 'You\'ll receive ${formatNGN(_netAmount)} in your GTBank account after the 0.9% fee.'
-          : 'You\'ll receive ${formatUSD(_netAmount)} in your USD account after the 0.9% fee.',
+          ? 'You\'ll receive ${formatNGN(_netAmount)} in your ${account.bankName} account.'
+          : 'You\'ll receive ${formatUSD(_netAmount)} in your ${account.bankName} account.',
       confirmLabel: 'Withdraw',
     );
     if (ok != true) return;
 
-    ref.read(userProvider.notifier).withdraw(_amount);
-    final refId = 'WDR-${DateTime.now().millisecondsSinceEpoch % 10000}';
-    setState(() { _success = true; _successRef = refId; });
+    setState(() => _loading = true);
+    try {
+      // The wallet is NGN-native — the USD amount shown is converted at the
+      // app's display fxRate to arrive at the real kobo amount to withdraw.
+      final amountKobo = (_amount * fxRate * 100).round();
+      await ref.read(walletServiceProvider).withdraw(
+            amountKobo: amountKobo,
+            bankCode: account.bankCode,
+            accountNumber: account.accountNumber,
+            accountName: account.accountName,
+          );
+      await refreshWalletBalance(ref);
+      final refId = 'WDR-${DateTime.now().millisecondsSinceEpoch % 10000}';
+      if (mounted) setState(() { _success = true; _successRef = refId; });
+    } on ApiException catch (e) {
+      if (mounted) showVToast(context, e.message);
+    } catch (_) {
+      if (mounted) showVToast(context, 'Withdrawal failed. Please try again.');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 }
 
@@ -173,8 +223,9 @@ class _SuccessView extends StatelessWidget {
   final double amount;
   final double ngnAmount;
   final String ref2;
+  final String bankLabel;
 
-  const _SuccessView({required this.isFreelancer, required this.amount, required this.ngnAmount, required this.ref2});
+  const _SuccessView({required this.isFreelancer, required this.amount, required this.ngnAmount, required this.ref2, required this.bankLabel});
 
   @override
   Widget build(BuildContext context) {
@@ -199,8 +250,8 @@ class _SuccessView extends StatelessWidget {
                     const SizedBox(height: 12),
                     Text(
                       isFreelancer
-                          ? '${formatNGN(ngnAmount)} is on its way to your GTBank account.'
-                          : '${formatUSD(amount)} is on its way to your USD account.',
+                          ? '${formatNGN(ngnAmount)} is on its way to your $bankLabel account.'
+                          : '${formatUSD(amount)} is on its way to your $bankLabel account.',
                       textAlign: TextAlign.center,
                       style: const TextStyle(fontSize: 14.5, color: AppColors.subText2, height: 1.6),
                     ),
@@ -212,7 +263,7 @@ class _SuccessView extends StatelessWidget {
                         _InfoRow('Reference', ref2),
                         _InfoRow('Amount', isFreelancer ? formatNGN(ngnAmount) : formatUSD(amount)),
                         _InfoRow('Est. arrival', '2–4 business hours'),
-                        _InfoRow('Bank', 'GTBank • • • • 4502'),
+                        _InfoRow('Bank', bankLabel),
                       ]),
                     ),
                   ],

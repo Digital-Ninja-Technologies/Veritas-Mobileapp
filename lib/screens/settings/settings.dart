@@ -198,8 +198,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void _logout() async {
     final ok = await showVConfirm(context, title: 'Log out?', body: 'You\'ll need to log in again to access your account.', confirmLabel: 'Log out');
     if (ok == true && mounted) {
+      // Clear the stored refresh token too — otherwise splash's silent
+      // auto-login would sign the user right back in on next launch.
+      await ref.read(authServiceProvider).logout();
+      ref.read(userProvider.notifier).reset();
       ref.read(isLoggedInProvider.notifier).state = false;
-      Navigator.of(context).popUntil((r) => r.isFirst);
+      if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
     }
   }
 

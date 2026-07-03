@@ -39,17 +39,26 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     }
   }
 
-  void _verify() {
+  void _verify() async {
     final code = _digits.join();
-    // Accept any 6-digit code for demo
-    if (code.length == 6) {
-      ref.read(isLoggedInProvider.notifier).state = true;
-      ref.read(onboardingCompleteProvider.notifier).state = true;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const MainShell()),
-        (_) => false,
-      );
+    // Accept any 6-digit code for demo — real auth already happened via
+    // AuthService.login()/silentRefresh() before this screen was reached.
+    if (code.length != 6) return;
+
+    try {
+      await refreshWalletBalance(ref);
+    } catch (_) {
+      // Wallet fetch failing shouldn't block sign-in — balance just shows
+      // as 0 until the next successful refresh.
     }
+    if (!mounted) return;
+
+    ref.read(isLoggedInProvider.notifier).state = true;
+    ref.read(onboardingCompleteProvider.notifier).state = true;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const MainShell()),
+      (_) => false,
+    );
   }
 
   @override

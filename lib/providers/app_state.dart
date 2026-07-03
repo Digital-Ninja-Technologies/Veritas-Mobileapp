@@ -1,5 +1,26 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/models.dart';
+import '../services/api_client.dart';
+import '../services/auth_service.dart';
+import '../services/token_storage.dart';
+import '../services/wallet_service.dart';
+
+// Networking / auth / wallet services
+final tokenStorageProvider = Provider<TokenStorage>((ref) => TokenStorage());
+final apiClientProvider = Provider<ApiClient>((ref) => ApiClient(ref.watch(tokenStorageProvider)));
+final authServiceProvider = Provider<AuthService>(
+  (ref) => AuthService(ref.watch(apiClientProvider), ref.watch(tokenStorageProvider)),
+);
+final walletServiceProvider = Provider<WalletService>((ref) => WalletService(ref.watch(apiClientProvider)));
+
+/// Fetches the real wallet balance and mirrors it into both
+/// freelancerBalance/clientBalance — the backend has a single wallet per
+/// user regardless of the local freelancer/client view toggle, so both
+/// fields always reflect the same real value after this runs.
+Future<void> refreshWalletBalance(WidgetRef ref) async {
+  final wallet = await ref.read(walletServiceProvider).getWallet();
+  ref.read(userProvider.notifier).setWalletBalanceKobo(wallet.balanceKobo);
+}
 
 // Auth state
 final isLoggedInProvider = StateProvider<bool>((ref) => false);
@@ -12,6 +33,21 @@ final userProvider = StateNotifierProvider<UserNotifier, UserModel>((ref) {
 
 class UserNotifier extends StateNotifier<UserModel> {
   UserNotifier() : super(const UserModel());
+
+  /// Replaces user state wholesale with the result of a register/login/me
+  /// call — local-only fields (role, KYC, payout accounts) fall back to
+  /// UserModel's defaults since the backend doesn't track them.
+  void applyAuthResult(UserModel user) => state = user;
+
+  /// Mirrors the real backend wallet balance (kobo, NGN) into the local
+  /// dual-balance fields via the app's existing USD<->NGN fxRate, so
+  /// `state.balance` and every screen reading it keep working unchanged.
+  void setWalletBalanceKobo(int kobo) {
+    final usd = (kobo / 100) / fxRate;
+    state = state.copyWith(freelancerBalance: usd, clientBalance: usd);
+  }
+
+  void reset() => state = const UserModel();
 
   void setRole(UserRole role) => state = state.copyWith(role: role);
   void setKyc(KycStatus status) => state = state.copyWith(kycStatus: status);
@@ -33,18 +69,6 @@ class UserNotifier extends StateNotifier<UserModel> {
   void setLanguage(String v) => state = state.copyWith(language: v);
   void setAppearance(String v) => state = state.copyWith(appearance: v);
   void setDisplayCurrency(String v) => state = state.copyWith(displayCurrency: v);
-
-  void addFunds(double amount) {
-    state = state.copyWith(clientBalance: state.clientBalance + amount);
-  }
-
-  void withdraw(double amount) {
-    if (state.role == UserRole.freelancer) {
-      state = state.copyWith(freelancerBalance: state.freelancerBalance - amount);
-    } else {
-      state = state.copyWith(clientBalance: state.clientBalance - amount);
-    }
-  }
 
   void creditFreelancer(double amount) {
     state = state.copyWith(freelancerBalance: state.freelancerBalance + amount);
@@ -69,35 +93,7 @@ class UserNotifier extends StateNotifier<UserModel> {
     state = state.copyWith(payoutAccounts: updated);
   }
 
-  void creditBalance(double amount) {
-    if (state.role == UserRole.freelancer) {
-      state = state.copyWith(freelancerBalance: state.freelancerBalance + amount);
-    } else {
-      state = state.copyWith(clientBalance: state.clientBalance + amount);
-    }
-  }
-
   void updateTag(String tag) => state = state.copyWith(veritasTag: tag);
-
-  void initFromOnboarding({
-    required String firstName,
-    required String middleName,
-    required String lastName,
-    required String email,
-    required String phone,
-    required String country,
-    required String password,
-  }) {
-    state = state.copyWith(
-      firstName: firstName,
-      middleName: middleName,
-      lastName: lastName,
-      email: email,
-      phone: phone,
-      country: country,
-      loginPassword: password,
-    );
-  }
 }
 
 // Contracts

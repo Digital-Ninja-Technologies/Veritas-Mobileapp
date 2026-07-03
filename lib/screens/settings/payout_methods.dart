@@ -15,6 +15,7 @@ class PayoutMethodsScreen extends ConsumerStatefulWidget {
 class _PayoutMethodsScreenState extends ConsumerState<PayoutMethodsScreen> {
   bool _adding = false;
   final _bankCtrl = TextEditingController();
+  final _bankCodeCtrl = TextEditingController();
   final _acctCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
 
@@ -55,6 +56,7 @@ class _PayoutMethodsScreenState extends ConsumerState<PayoutMethodsScreen> {
                     if (_adding) ...[
                       _AddBankForm(
                         bankCtrl: _bankCtrl,
+                        bankCodeCtrl: _bankCodeCtrl,
                         acctCtrl: _acctCtrl,
                         nameCtrl: _nameCtrl,
                         onSave: _saveAccount,
@@ -84,17 +86,18 @@ class _PayoutMethodsScreenState extends ConsumerState<PayoutMethodsScreen> {
   }
 
   void _saveAccount() {
-    if (_bankCtrl.text.isEmpty || _acctCtrl.text.isEmpty || _nameCtrl.text.isEmpty) return;
+    if (_bankCtrl.text.isEmpty || _bankCodeCtrl.text.isEmpty || _acctCtrl.text.isEmpty || _nameCtrl.text.isEmpty) return;
     final account = PayoutAccount(
       id: 'acc${DateTime.now().millisecondsSinceEpoch}',
       bankName: _bankCtrl.text.trim(),
+      bankCode: _bankCodeCtrl.text.trim(),
       accountNumber: _acctCtrl.text.trim(),
       accountName: _nameCtrl.text.trim(),
       currency: 'NGN',
       isDefault: ref.read(userProvider).payoutAccounts.isEmpty,
     );
     ref.read(userProvider.notifier).addPayoutAccount(account);
-    _bankCtrl.clear(); _acctCtrl.clear(); _nameCtrl.clear();
+    _bankCtrl.clear(); _bankCodeCtrl.clear(); _acctCtrl.clear(); _nameCtrl.clear();
     setState(() => _adding = false);
     showVToast(context, 'Account added');
   }
@@ -144,6 +147,8 @@ class _AccountCard extends StatelessWidget {
               const SizedBox(height: 2),
               Text(account.accountNumber, style: const TextStyle(fontSize: 12.5, color: AppColors.subText)),
               Text(account.accountName, style: const TextStyle(fontSize: 12.5, color: AppColors.subText)),
+              if (account.bankCode.isEmpty)
+                const Text('No bank code — can\'t be used for withdrawals', style: TextStyle(fontSize: 11.5, color: AppColors.redDark)),
             ]),
           ),
           PopupMenuButton<String>(
@@ -165,10 +170,10 @@ class _AccountCard extends StatelessWidget {
 }
 
 class _AddBankForm extends StatelessWidget {
-  final TextEditingController bankCtrl, acctCtrl, nameCtrl;
+  final TextEditingController bankCtrl, bankCodeCtrl, acctCtrl, nameCtrl;
   final VoidCallback onSave, onCancel;
 
-  const _AddBankForm({required this.bankCtrl, required this.acctCtrl, required this.nameCtrl, required this.onSave, required this.onCancel});
+  const _AddBankForm({required this.bankCtrl, required this.bankCodeCtrl, required this.acctCtrl, required this.nameCtrl, required this.onSave, required this.onCancel});
 
   @override
   Widget build(BuildContext context) {
@@ -179,6 +184,8 @@ class _AddBankForm extends StatelessWidget {
         const Text('New payout account', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.darkText)),
         const SizedBox(height: 16),
         VTextField(label: 'Bank name', controller: bankCtrl, hint: 'e.g. GTBank, Access Bank'),
+        const SizedBox(height: 12),
+        VTextField(label: 'Bank code', controller: bankCodeCtrl, hint: 'e.g. 058 for GTBank', keyboardType: TextInputType.number),
         const SizedBox(height: 12),
         VTextField(label: 'Account number', controller: acctCtrl, hint: '0123456789', keyboardType: TextInputType.number),
         const SizedBox(height: 12),

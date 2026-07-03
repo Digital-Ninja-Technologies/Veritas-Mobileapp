@@ -7,6 +7,9 @@ enum MilestoneStatus { pending, inProgress, submitted, inReview, changesRequeste
 enum DisputeStatus { open, underReview, resolved }
 
 class UserModel {
+  // Backend user ID (uuid) — empty until a real register/login/refresh
+  // response has populated it.
+  final String id;
   final String firstName;
   final String middleName;
   final String lastName;
@@ -29,6 +32,7 @@ class UserModel {
   final String? defaultPayoutId;
 
   const UserModel({
+    this.id = '',
     this.firstName = 'Amaka',
     this.middleName = '',
     this.lastName = 'Okafor',
@@ -51,6 +55,7 @@ class UserModel {
       PayoutAccount(
         id: 'gtb1',
         bankName: 'GTBank',
+        bankCode: '058',
         accountNumber: '• • • • 4502',
         accountName: 'Amaka Okafor',
         currency: 'NGN',
@@ -65,7 +70,27 @@ class UserModel {
 
   double get balance => role == UserRole.freelancer ? freelancerBalance : clientBalance;
 
+  /// Maps the backend's `User` JSON (`{id, email, full_name, role, phone,
+  /// created_at}`) onto this model. `full_name` is a single field there —
+  /// it's split naively on the first space into first/last name for the
+  /// local UI fields that expect them separately.
+  factory UserModel.fromApi(Map<String, dynamic> json, {UserModel? previous}) {
+    final fullName = (json['full_name'] as String?)?.trim() ?? '';
+    final spaceIdx = fullName.indexOf(' ');
+    final first = spaceIdx == -1 ? fullName : fullName.substring(0, spaceIdx);
+    final last = spaceIdx == -1 ? '' : fullName.substring(spaceIdx + 1);
+
+    return (previous ?? const UserModel()).copyWith(
+      id: json['id'] as String?,
+      firstName: first.isNotEmpty ? first : null,
+      lastName: last,
+      email: json['email'] as String?,
+      phone: json['phone'] as String?,
+    );
+  }
+
   UserModel copyWith({
+    String? id,
     String? firstName,
     String? middleName,
     String? lastName,
@@ -88,6 +113,7 @@ class UserModel {
     String? defaultPayoutId,
   }) {
     return UserModel(
+      id: id ?? this.id,
       firstName: firstName ?? this.firstName,
       middleName: middleName ?? this.middleName,
       lastName: lastName ?? this.lastName,
@@ -115,6 +141,9 @@ class UserModel {
 class PayoutAccount {
   final String id;
   final String bankName;
+  // Nomba bank code (e.g. "058" for GTBank) — required to actually call
+  // POST /wallet/withdraw against the real backend.
+  final String bankCode;
   final String accountNumber;
   final String accountName;
   final String currency;
@@ -123,6 +152,7 @@ class PayoutAccount {
   const PayoutAccount({
     required this.id,
     required this.bankName,
+    this.bankCode = '',
     required this.accountNumber,
     required this.accountName,
     required this.currency,
@@ -132,6 +162,7 @@ class PayoutAccount {
   PayoutAccount copyWith({bool? isDefault}) => PayoutAccount(
         id: id,
         bankName: bankName,
+        bankCode: bankCode,
         accountNumber: accountNumber,
         accountName: accountName,
         currency: currency,

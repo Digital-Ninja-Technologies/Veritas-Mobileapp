@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme.dart';
+import '../../providers/app_state.dart';
 import '../../widgets/common.dart';
+import '../main/shell.dart';
 import 'intro.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -32,8 +34,19 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
     super.dispose();
   }
 
-  void _advance() {
+  void _advance() async {
+    // Try to silently resume a previous session via the stored refresh
+    // token before falling back to the normal onboarding flow.
+    final resumed = await _tryResumeSession();
     if (!mounted) return;
+
+    if (resumed) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const MainShell()),
+      );
+      return;
+    }
+
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (_, __, ___) => const IntroScreen(),
@@ -42,6 +55,22 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
         transitionDuration: const Duration(milliseconds: 400),
       ),
     );
+  }
+
+  Future<bool> _tryResumeSession() async {
+    try {
+      final refreshed = await ref.read(authServiceProvider).silentRefresh();
+      if (!refreshed) return false;
+
+      final user = await ref.read(authServiceProvider).me();
+      ref.read(userProvider.notifier).applyAuthResult(user);
+      await refreshWalletBalance(ref);
+      ref.read(isLoggedInProvider.notifier).state = true;
+      ref.read(onboardingCompleteProvider.notifier).state = true;
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   @override

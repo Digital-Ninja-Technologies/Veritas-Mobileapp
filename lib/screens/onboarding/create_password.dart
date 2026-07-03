@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme.dart';
 import '../../providers/app_state.dart';
+import '../../services/api_client.dart';
 import '../../widgets/common.dart';
 import '../main/shell.dart';
 
@@ -34,10 +35,54 @@ class _CreatePasswordScreenState extends ConsumerState<CreatePasswordScreen> {
   final _confirmCtrl = TextEditingController();
   bool _showPwd = false;
   bool _showConfirm = false;
+  bool _loading = false;
 
   bool get _pwdOk => _pwdCtrl.text.length >= 8;
   bool get _match => _pwdCtrl.text == _confirmCtrl.text && _pwdCtrl.text.isNotEmpty;
   bool get _valid => _pwdOk && _match;
+
+  Future<void> _createAccount() async {
+    setState(() => _loading = true);
+    try {
+      final fullName = [widget.firstName, widget.middleName, widget.lastName]
+          .where((s) => s.isNotEmpty)
+          .join(' ');
+      final user = await ref.read(authServiceProvider).register(
+            fullName: fullName,
+            email: widget.email,
+            phone: widget.phone,
+            password: _pwdCtrl.text,
+          );
+      // country isn't part of the backend's User model — carry it over
+      // locally since it's collected during onboarding.
+      ref.read(userProvider.notifier).applyAuthResult(user.copyWith(country: widget.country));
+
+      try {
+        await refreshWalletBalance(ref);
+      } catch (_) {
+        // New wallet starts at 0 — a failed fetch here isn't fatal.
+      }
+
+      // Activate any escrow contracts sent to this email before the user
+      // had a Veritas account.
+      final claimed = ref.read(contractsProvider.notifier).claimContractsByEmail(widget.email);
+      if (claimed > 0) {
+        ref.read(notificationsProvider.notifier).addPendingContractNotif(claimed, widget.firstName);
+      }
+
+      ref.read(isLoggedInProvider.notifier).state = true;
+      ref.read(onboardingCompleteProvider.notifier).state = true;
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const MainShell()),
+        (_) => false,
+      );
+    } on ApiException catch (e) {
+      if (mounted) showVToast(context, e.message);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   List<({String label, bool met})> get _rules => [
     (label: 'At least 8 characters', met: _pwdCtrl.text.length >= 8),
@@ -106,38 +151,8 @@ class _CreatePasswordScreenState extends ConsumerState<CreatePasswordScreen> {
                       ),
                     const SizedBox(height: 32),
                     VButton(
-                      label: 'Create account',
-                      onTap: _valid
-                          ? () {
-                              ref.read(userProvider.notifier).initFromOnboarding(
-                                firstName: widget.firstName,
-                                middleName: widget.middleName,
-                                lastName: widget.lastName,
-                                email: widget.email,
-                                phone: widget.phone,
-                                country: widget.country,
-                                password: _pwdCtrl.text,
-                              );
-
-                              // Activate any escrow contracts sent to this email
-                              // before the user had a Veritas account.
-                              final claimed = ref.read(contractsProvider.notifier)
-                                  .claimContractsByEmail(widget.email);
-                              if (claimed > 0) {
-                                ref.read(notificationsProvider.notifier).addPendingContractNotif(
-                                  claimed,
-                                  widget.firstName,
-                                );
-                              }
-
-                              ref.read(isLoggedInProvider.notifier).state = true;
-                              ref.read(onboardingCompleteProvider.notifier).state = true;
-                              Navigator.of(context).pushAndRemoveUntil(
-                                MaterialPageRoute(builder: (_) => const MainShell()),
-                                (_) => false,
-                              );
-                            }
-                          : null,
+                      label: _loading ? 'Creating account...' : 'Create account',
+                      onTap: _valid && !_loading ? _createAccount : null,
                     ),
                     const SizedBox(height: 24),
                   ],
