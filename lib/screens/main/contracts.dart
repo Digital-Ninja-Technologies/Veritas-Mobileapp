@@ -14,12 +14,18 @@ class ContractsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final contracts = ref.watch(contractsProvider);
     final user = ref.watch(userProvider);
+    // The role switcher on Home filters which contracts to emphasize, but
+    // whether the CURRENT user is client or freelancer is per-contract —
+    // the backend is symmetric, you can be either depending on the deal.
     final isClient = user.role == UserRole.client;
 
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
-        child: CustomScrollView(
+        child: RefreshIndicator(
+          onRefresh: () => refreshContracts(ref),
+          child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             SliverToBoxAdapter(
               child: Padding(
@@ -84,6 +90,7 @@ class ContractsScreen extends ConsumerWidget {
                 ),
               ),
           ],
+          ),
         ),
       ),
       floatingActionButton: isClient
@@ -107,7 +114,7 @@ class _ContractListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isClient = user.role == UserRole.client;
+    final isClient = contract.isClientFor(user.id);
     final party = isClient ? contract.freelancerName : contract.clientName;
     final badge = contract.statusBadge;
     final pct = contract.progressPct;

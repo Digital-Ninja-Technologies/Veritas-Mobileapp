@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme.dart';
 import '../../core/models.dart';
 import '../../providers/app_state.dart';
+import '../../services/api_client.dart';
 import '../../widgets/common.dart';
 
 class DisputeScreen extends ConsumerStatefulWidget {
@@ -20,6 +21,7 @@ class _DisputeScreenState extends ConsumerState<DisputeScreen> {
   final _detailCtrl = TextEditingController();
   final List<String> _evidence = [];
   bool _submitted = false;
+  bool _submitting = false;
   String _caseRef = '';
 
   final _reasons = [
@@ -174,7 +176,12 @@ class _DisputeScreenState extends ConsumerState<DisputeScreen> {
                       ),
                     )),
                     const SizedBox(height: 24),
-                    VButton(label: 'Submit dispute', onTap: _valid ? _submit : null, bg: AppColors.redDark, fg: Colors.white),
+                    VButton(
+                      label: _submitting ? 'Submitting…' : 'Submit dispute',
+                      onTap: _valid && !_submitting ? _submit : null,
+                      bg: AppColors.redDark,
+                      fg: Colors.white,
+                    ),
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -186,16 +193,31 @@ class _DisputeScreenState extends ConsumerState<DisputeScreen> {
     );
   }
 
-  void _submit() {
-    final ref2 = 'DSP-${4000 + DateTime.now().millisecondsSinceEpoch % 1000}';
+  void _submit() async {
+    setState(() => _submitting = true);
     final mid = _selectedMilestoneId!;
     final m = widget.contract.milestones.firstWhere((m) => m.id == mid);
-    ref.read(contractsProvider.notifier).updateMilestone(widget.contract.id, mid, m.copyWith(
-      status: MilestoneStatus.inDispute,
-      disputeRef: ref2,
-      disputeStatus: DisputeStatus.open,
-    ));
-    setState(() { _submitted = true; _caseRef = ref2; });
+    // The backend's dispute is escrow-level (one reason string, no
+    // milestone targeting) — fold which milestone into the reason text so
+    // the context isn't lost.
+    final reason = '$_selectedReason (milestone: "${m.title}"): ${_detailCtrl.text.trim()}';
+
+    try {
+      final dispute = await ref.read(escrowServiceProvider).raiseDispute(widget.contract.id, reason);
+      // Optimistic local update so the milestone shows "in dispute" until
+      // the next full refresh.
+      ref.read(contractsProvider.notifier).updateMilestone(widget.contract.id, mid, m.copyWith(
+        status: MilestoneStatus.inDispute,
+        disputeRef: dispute.id.substring(0, 8).toUpperCase(),
+        disputeStatus: DisputeStatus.open,
+      ));
+      if (mounted) setState(() { _submitted = true; _caseRef = dispute.id.substring(0, 8).toUpperCase(); });
+    } on ApiException catch (e) {
+      if (mounted) showVToast(context, e.message);
+    } finally {
+      await refreshContracts(ref);
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 }
 

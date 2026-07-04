@@ -370,7 +370,7 @@ class _ContractCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isClient = user.role == UserRole.client;
+    final isClient = contract.isClientFor(user.id);
     final party = isClient ? contract.freelancerName : contract.clientName;
     final badge = contract.statusBadge;
     final pct = contract.progressPct;

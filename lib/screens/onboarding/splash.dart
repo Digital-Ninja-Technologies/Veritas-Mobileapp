@@ -65,6 +65,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
       final user = await ref.read(authServiceProvider).me();
       ref.read(userProvider.notifier).applyAuthResult(user);
       await refreshWalletBalance(ref);
+      try {
+        await refreshContracts(ref);
+      } catch (_) {
+        // Non-fatal — the contracts list just stays empty until the next refresh.
+      }
       ref.read(isLoggedInProvider.notifier).state = true;
       ref.read(onboardingCompleteProvider.notifier).state = true;
       return true;

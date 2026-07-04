@@ -6,7 +6,28 @@ class AuthService {
   final ApiClient api;
   final TokenStore tokenStorage;
 
+  // In-memory only — resolved names for escrow counterparties. Repopulated
+  // each app session; not worth persisting since it's just a display cache.
+  final Map<String, String> _nameCache = {};
+
   AuthService(this.api, this.tokenStorage);
+
+  /// Resolves another user's display name via GET /users/:id. Falls back to
+  /// a generic label if the lookup fails rather than throwing, since this is
+  /// only ever used for display purposes (e.g. an escrow list row).
+  Future<String> publicNameFor(String userId) async {
+    final cached = _nameCache[userId];
+    if (cached != null) return cached;
+    try {
+      final json = await api.get('/users/$userId');
+      final name = (json?['data'] as Map<String, dynamic>?)?['full_name'] as String?;
+      final resolved = (name == null || name.isEmpty) ? 'Veritas user' : name;
+      _nameCache[userId] = resolved;
+      return resolved;
+    } catch (_) {
+      return 'Veritas user';
+    }
+  }
 
   Future<UserModel> register({
     required String fullName,

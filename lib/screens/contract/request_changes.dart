@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme.dart';
 import '../../core/models.dart';
-import '../../providers/app_state.dart';
 import '../../widgets/common.dart';
 
 class RequestChangesScreen extends ConsumerStatefulWidget {
@@ -91,7 +90,7 @@ class _RequestChangesScreenState extends ConsumerState<RequestChangesScreen> {
                     const SizedBox(height: 24),
                     VButton(
                       label: 'Send back for changes',
-                      onTap: _valid ? _reject : null,
+                      onTap: _valid ? _notSupportedYet : null,
                       bg: const Color(0xFFFCE7DD),
                       fg: AppColors.orange,
                     ),
@@ -105,13 +104,12 @@ class _RequestChangesScreenState extends ConsumerState<RequestChangesScreen> {
     );
   }
 
-  void _reject() {
-    final updated = widget.milestone.copyWith(
-      status: MilestoneStatus.changesRequested,
-      changeNote: _noteCtrl.text.trim(),
-    );
-    ref.read(contractsProvider.notifier).updateMilestone(widget.contractId, widget.milestone.id, updated);
-    Navigator.of(context).pop();
-    showVToast(context, 'Changes requested');
+  // The backend only supports a binary deliver → approve flow for
+  // milestones — there's no request-changes/reject endpoint. Rather than
+  // fake success with a local-only state change (which the next contracts
+  // refresh would just overwrite), tell the client honestly: approve and
+  // ask for a revision as a new milestone, or raise a dispute instead.
+  void _notSupportedYet() {
+    showVToast(context, 'Not supported yet — approve or raise a dispute instead.');
   }
 }

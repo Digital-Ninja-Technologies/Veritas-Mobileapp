@@ -62,12 +62,10 @@ class _CreatePasswordScreenState extends ConsumerState<CreatePasswordScreen> {
       } catch (_) {
         // New wallet starts at 0 — a failed fetch here isn't fatal.
       }
-
-      // Activate any escrow contracts sent to this email before the user
-      // had a Veritas account.
-      final claimed = ref.read(contractsProvider.notifier).claimContractsByEmail(widget.email);
-      if (claimed > 0) {
-        ref.read(notificationsProvider.notifier).addPendingContractNotif(claimed, widget.firstName);
+      try {
+        await refreshContracts(ref);
+      } catch (_) {
+        // A brand new account has no contracts yet anyway.
       }
 
       ref.read(isLoggedInProvider.notifier).state = true;

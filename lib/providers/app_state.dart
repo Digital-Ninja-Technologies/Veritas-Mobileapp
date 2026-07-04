@@ -2,16 +2,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/models.dart';
 import '../services/api_client.dart';
 import '../services/auth_service.dart';
+import '../services/escrow_service.dart';
 import '../services/token_storage.dart';
 import '../services/wallet_service.dart';
 
-// Networking / auth / wallet services
+// Networking / auth / wallet / escrow services
 final tokenStorageProvider = Provider<TokenStorage>((ref) => TokenStorage());
 final apiClientProvider = Provider<ApiClient>((ref) => ApiClient(ref.watch(tokenStorageProvider)));
 final authServiceProvider = Provider<AuthService>(
   (ref) => AuthService(ref.watch(apiClientProvider), ref.watch(tokenStorageProvider)),
 );
 final walletServiceProvider = Provider<WalletService>((ref) => WalletService(ref.watch(apiClientProvider)));
+final escrowServiceProvider = Provider<EscrowService>((ref) => EscrowService(ref.watch(apiClientProvider)));
 
 /// Fetches the real wallet balance and mirrors it into both
 /// freelancerBalance/clientBalance — the backend has a single wallet per
@@ -21,6 +23,10 @@ Future<void> refreshWalletBalance(WidgetRef ref) async {
   final wallet = await ref.read(walletServiceProvider).getWallet();
   ref.read(userProvider.notifier).setWalletBalanceKobo(wallet.balanceKobo);
 }
+
+/// Fetches the caller's real escrows (as client or freelancer) from the
+/// backend and replaces the local contracts list.
+Future<void> refreshContracts(WidgetRef ref) => ref.read(contractsProvider.notifier).loadFromApi();
 
 // Auth state
 final isLoggedInProvider = StateProvider<bool>((ref) => false);
@@ -98,14 +104,74 @@ class UserNotifier extends StateNotifier<UserModel> {
 
 // Contracts
 final contractsProvider = StateNotifierProvider<ContractsNotifier, List<EscrowContract>>((ref) {
-  return ContractsNotifier();
+  return ContractsNotifier(ref);
 });
 
-class ContractsNotifier extends StateNotifier<List<EscrowContract>> {
-  ContractsNotifier() : super(seedContracts());
+/// Backend milestone status → local display status. "approved" is transient
+/// (approve+release happen in one backend call) so it's rarely observed at
+/// rest; "rejected" has no reachable path since there's no reject endpoint.
+MilestoneStatus _mapMilestoneStatus(String backend) {
+  switch (backend) {
+    case 'delivered':
+      return MilestoneStatus.submitted;
+    case 'released':
+      return MilestoneStatus.released;
+    default:
+      return MilestoneStatus.pending;
+  }
+}
 
-  void addContract(EscrowContract contract) {
-    state = [...state, contract];
+String _initialsFor(String name) {
+  final parts = name.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+  if (parts.isEmpty) return '?';
+  return parts.take(2).map((w) => w[0]).join().toUpperCase();
+}
+
+class ContractsNotifier extends StateNotifier<List<EscrowContract>> {
+  final Ref _ref;
+  ContractsNotifier(this._ref) : super([]);
+
+  /// Fetches every escrow the caller is a party to (as client or freelancer)
+  /// and replaces the local list. Resolves the counterparty's display name
+  /// per contract via AuthService's cached /users/:id lookup.
+  Future<void> loadFromApi() async {
+    final escrowService = _ref.read(escrowServiceProvider);
+    final authService = _ref.read(authServiceProvider);
+    final me = _ref.read(userProvider);
+
+    final remoteEscrows = await escrowService.listEscrows();
+    final contracts = await Future.wait(remoteEscrows.map((e) async {
+      final isClient = e.clientId == me.id;
+      final counterpartId = isClient ? e.freelancerId : e.clientId;
+      final counterpartName = await authService.publicNameFor(counterpartId);
+      final milestones = await escrowService.listMilestones(e.id);
+
+      return EscrowContract(
+        id: e.id,
+        project: e.title,
+        clientName: isClient ? me.fullName : counterpartName,
+        freelancerName: isClient ? counterpartName : me.fullName,
+        clientTag: '',
+        freelancerTag: '',
+        totalAmount: (e.amountKobo / 100) / fxRate,
+        milestones: milestones
+            .map((m) => MilestoneModel(
+                  id: m.id,
+                  title: m.title,
+                  amount: (m.amountKobo / 100) / fxRate,
+                  status: _mapMilestoneStatus(m.status),
+                ))
+            .toList(),
+        avatarBg: '#E3ECFF',
+        avatarFg: '#2D6BDB',
+        initials: _initialsFor(counterpartName),
+        clientId: e.clientId,
+        freelancerId: e.freelancerId,
+        escrowStatus: e.status,
+      );
+    }));
+
+    state = contracts;
   }
 
   void updateMilestone(String contractId, String milestoneId, MilestoneModel updated) {
@@ -114,21 +180,6 @@ class ContractsNotifier extends StateNotifier<List<EscrowContract>> {
       final milestones = c.milestones.map((m) => m.id == milestoneId ? updated : m).toList();
       return c.copyWith(milestones: milestones);
     }).toList();
-  }
-
-  // Activates all contracts that were pending an invited user with this email.
-  // Returns the count of contracts that were claimed.
-  int claimContractsByEmail(String email) {
-    final lower = email.toLowerCase();
-    int count = 0;
-    state = state.map((c) {
-      if (c.inviteeEmail?.toLowerCase() == lower) {
-        count++;
-        return c.copyWith(clearInvitee: true);
-      }
-      return c;
-    }).toList();
-    return count;
   }
 }
 

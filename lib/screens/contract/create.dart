@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme.dart';
-import '../../core/models.dart';
 import '../../providers/app_state.dart';
+import '../../services/api_client.dart';
+import '../../services/escrow_service.dart';
 import '../../widgets/common.dart';
 
 // ─── Data classes ────────────────────────────────────────────────────────────
@@ -57,6 +58,7 @@ class CreateEscrowScreen extends ConsumerStatefulWidget {
 
 class _CreateEscrowScreenState extends ConsumerState<CreateEscrowScreen> {
   _CStep _step = _CStep.details;
+  bool _submitting = false;
 
   // Step 1
   final _projectCtrl = TextEditingController();
@@ -70,7 +72,8 @@ class _CreateEscrowScreenState extends ConsumerState<CreateEscrowScreen> {
   ];
 
   double get _total => _milestones.fold(0.0, (s, m) => s + m.amt);
-  bool get _step1Valid => _projectCtrl.text.trim().isNotEmpty && _freelancer != null;
+  bool get _step1Valid =>
+      _projectCtrl.text.trim().isNotEmpty && _freelancer != null && _freelancer!.email.isNotEmpty;
   bool get _step2Valid => _milestones.isNotEmpty && _total > 0;
   int get _stepNum => _step == _CStep.details ? 1 : _step == _CStep.milestones ? 2 : 3;
   String get _headerTitle => _step == _CStep.review ? 'Review & fund' : 'New escrow';
@@ -231,13 +234,17 @@ class _CreateEscrowScreenState extends ConsumerState<CreateEscrowScreen> {
               ),
             ),
             const SizedBox(height: 10),
-            const Text('Or invite by @tag or email', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.subText2)),
+            // Only email works here — the backend requires the freelancer to
+            // already have a Veritas account found by email; there's no
+            // pending-invite-by-tag concept.
+            const Text('Or add by email', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.subText2)),
             const SizedBox(height: 8),
             Row(children: [
               Expanded(
                 child: TextField(
                   controller: invCtrl,
-                  decoration: const InputDecoration(hintText: '@usertag or name@email.com'),
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(hintText: 'name@email.com'),
                 ),
               ),
               const SizedBox(width: 8),
@@ -246,16 +253,13 @@ class _CreateEscrowScreenState extends ConsumerState<CreateEscrowScreen> {
                   final q = invCtrl.text.trim();
                   if (q.isEmpty) return;
                   final isEmail = q.contains('@') && q.contains('.');
-                  final isTag = q.startsWith('@') && !isEmail;
-                  final found = _kDirectory.where((f) => '@${f.tag}' == q || f.handle == q || f.email == q).firstOrNull;
+                  final found = _kDirectory.where((f) => f.email == q).firstOrNull;
                   if (found != null) {
                     setState(() => _freelancer = found);
                   } else if (isEmail) {
                     setState(() => _freelancer = _FreelancerEntry(tag: '', handle: q, name: q, email: q, avBg: '#EDEBD8', avFg: '#79775F', verified: false, skill: ''));
-                  } else if (isTag) {
-                    setState(() => _freelancer = _FreelancerEntry(tag: '', handle: q, name: q, email: '', avBg: '#FFF1CC', avFg: '#9A7B00', verified: false, skill: ''));
                   } else {
-                    showVToast(context, 'Enter a valid @tag or email');
+                    showVToast(context, 'Enter a valid email address');
                     return;
                   }
                   Navigator.of(ctx).pop();
@@ -370,41 +374,49 @@ class _CreateEscrowScreenState extends ConsumerState<CreateEscrowScreen> {
     final f = _freelancer!;
     final total = _total;
     final firstName = f.name.split(' ').first;
-    final isInvite = f.tag.isEmpty && f.email.contains('@');
-    final inviteNote = isInvite ? " We'll send $firstName an email — they'll see the contract the moment they create an account." : '';
 
     final ok = await showVConfirm(
       context,
       title: 'Fund ${formatUSD(total)} into escrow?',
-      body: 'This locks ${formatUSD(total)} across ${_milestones.length} milestones.$inviteNote${isInvite ? '' : ' $firstName can\'t access it until you release each one.'}',
+      body: 'This locks ${formatUSD(total)} across ${_milestones.length} milestones from your wallet balance. $firstName can\'t access it until you release each one.',
       confirmLabel: 'Fund escrow',
     );
     if (ok != true || !mounted) return;
 
-    final milestones = _milestones.map((m) => MilestoneModel(id: m.id, title: m.title, amount: m.amt)).toList();
-    final contract = EscrowContract(
-      id: 'c${DateTime.now().millisecondsSinceEpoch}',
-      project: _projectCtrl.text.trim(),
-      clientName: ref.read(userProvider).fullName,
-      freelancerName: isInvite ? f.email : f.name,
-      clientTag: ref.read(userProvider).veritasTag != null ? '@${ref.read(userProvider).veritasTag}' : '',
-      freelancerTag: f.handle,
-      totalAmount: total,
-      milestones: milestones,
-      avatarBg: f.avBg,
-      avatarFg: f.avFg,
-      initials: f.initials,
-      inviteeEmail: isInvite ? f.email : null,
-    );
+    setState(() => _submitting = true);
+    try {
+      // Dollar amounts convert to percentages of the total — the backend
+      // splits kobo by percentage, not by raw amount.
+      final milestoneInputs = _milestones
+          .map((m) => MilestoneInput(title: m.title, percentage: (m.amt / total) * 100))
+          .toList();
+      final amountKobo = (total * fxRate * 100).round();
 
-    ref.read(contractsProvider.notifier).addContract(contract);
-    ref.read(userProvider.notifier).debitClient(total);
-    Navigator.of(context).pop();
+      await ref.read(escrowServiceProvider).createEscrow(
+            title: _projectCtrl.text.trim(),
+            freelancerEmail: f.email,
+            amountKobo: amountKobo,
+            // Not collected in this flow yet — defaults to 30 days out.
+            deadlineAt: DateTime.now().add(const Duration(days: 30)),
+            milestones: milestoneInputs,
+          );
 
-    if (isInvite) {
-      showVToast(context, 'Invite sent to ${f.email} — contract activates when they join!');
-    } else {
+      await refreshContracts(ref);
+      try {
+        await refreshWalletBalance(ref);
+      } catch (_) {
+        // Non-fatal — balance just stays stale until the next refresh.
+      }
+
+      if (!mounted) return;
+      Navigator.of(context).pop();
       showVToast(context, 'Escrow funded — $firstName has been notified!');
+    } on ApiException catch (e) {
+      if (mounted) showVToast(context, e.message);
+    } catch (_) {
+      if (mounted) showVToast(context, 'Could not create the escrow. Please try again.');
+    } finally {
+      if (mounted) setState(() => _submitting = false);
     }
   }
 }
@@ -770,7 +782,7 @@ class _StepReview extends StatelessWidget {
 
         // Fund button
         GestureDetector(
-          onTap: s.requestFund,
+          onTap: s._submitting ? null : s.requestFund,
           child: Container(
             alignment: Alignment.center,
             padding: const EdgeInsets.symmetric(vertical: 17),
@@ -778,7 +790,10 @@ class _StepReview extends StatelessWidget {
             child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
               const Icon(Icons.lock_outline, color: AppColors.yellow, size: 17),
               const SizedBox(width: 9),
-              Text('Fund escrow · ${formatUSD(total)}', style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800, color: AppColors.yellow)),
+              Text(
+                s._submitting ? 'Funding…' : 'Fund escrow · ${formatUSD(total)}',
+                style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800, color: AppColors.yellow),
+              ),
             ]),
           ),
         ),

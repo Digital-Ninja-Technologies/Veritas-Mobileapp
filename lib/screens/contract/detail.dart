@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme.dart';
 import '../../core/models.dart';
 import '../../providers/app_state.dart';
+import '../../services/api_client.dart';
 import '../../widgets/common.dart';
 import '../settings/support_chat.dart';
 import 'submit_work.dart';
@@ -19,7 +20,7 @@ class ContractDetailScreen extends ConsumerWidget {
     final contracts = ref.watch(contractsProvider);
     final user = ref.watch(userProvider);
     final contract = contracts.firstWhere((c) => c.id == contractId);
-    final isClient = user.role == UserRole.client;
+    final isClient = contract.isClientFor(user.id);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -406,10 +407,18 @@ class _MilestoneRow extends StatelessWidget {
   void _doAction(BuildContext context) async {
     if (milestone.status == MilestoneStatus.submitted || milestone.status == MilestoneStatus.inReview) {
       if (isClient) {
-        final ok = await showVConfirm(context, title: 'Release ${formatUSD(milestone.amount)}?', body: 'This releases funds to the freelancer. The action can\'t be recalled once confirmed.', confirmLabel: 'Release');
-        if (ok == true) {
-          ref.read(contractsProvider.notifier).updateMilestone(contractId, milestone.id, milestone.copyWith(status: MilestoneStatus.released));
+        final ok = await showVConfirm(context, title: 'Release ${formatUSD(milestone.amount)}?', body: 'This releases funds into the freelancer\'s wallet. The action can\'t be recalled once confirmed.', confirmLabel: 'Release');
+        if (ok != true) return;
+        // Optimistic local update so the UI responds instantly...
+        ref.read(contractsProvider.notifier).updateMilestone(contractId, milestone.id, milestone.copyWith(status: MilestoneStatus.released));
+        try {
+          await ref.read(escrowServiceProvider).approveMilestone(milestone.id);
           if (context.mounted) showVToast(context, 'Funds released!');
+        } on ApiException catch (e) {
+          if (context.mounted) showVToast(context, e.message);
+        } finally {
+          // ...then reconcile with the server regardless of outcome.
+          await refreshContracts(ref);
         }
       }
     } else {

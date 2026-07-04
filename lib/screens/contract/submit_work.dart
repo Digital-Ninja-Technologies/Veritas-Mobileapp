@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme.dart';
 import '../../core/models.dart';
 import '../../providers/app_state.dart';
+import '../../services/api_client.dart';
 import '../../widgets/common.dart';
 
 class SubmitWorkScreen extends ConsumerStatefulWidget {
@@ -18,6 +19,7 @@ class SubmitWorkScreen extends ConsumerStatefulWidget {
 class _SubmitWorkScreenState extends ConsumerState<SubmitWorkScreen> {
   final _noteCtrl = TextEditingController();
   final _linkCtrl = TextEditingController();
+  bool _submitting = false;
 
   bool get _valid => _noteCtrl.text.trim().isNotEmpty;
 
@@ -110,8 +112,8 @@ class _SubmitWorkScreenState extends ConsumerState<SubmitWorkScreen> {
                     ),
                     const SizedBox(height: 24),
                     VButton(
-                      label: 'Submit for review',
-                      onTap: _valid ? _submit : null,
+                      label: _submitting ? 'Submitting…' : 'Submit for review',
+                      onTap: _valid && !_submitting ? _submit : null,
                     ),
                   ],
                 ),
@@ -123,14 +125,26 @@ class _SubmitWorkScreenState extends ConsumerState<SubmitWorkScreen> {
     );
   }
 
-  void _submit() {
+  void _submit() async {
+    setState(() => _submitting = true);
+    // Optimistic local update — the note/link only live locally, the
+    // backend's deliver endpoint has no field for them.
     final updated = widget.milestone.copyWith(
       status: MilestoneStatus.submitted,
       deliveryNote: _noteCtrl.text.trim(),
       deliveryLink: _linkCtrl.text.trim().isEmpty ? null : _linkCtrl.text.trim(),
     );
     ref.read(contractsProvider.notifier).updateMilestone(widget.contractId, widget.milestone.id, updated);
-    Navigator.of(context).pop();
-    showVToast(context, 'Work submitted for review');
+    try {
+      await ref.read(escrowServiceProvider).markMilestoneDelivered(widget.milestone.id);
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      showVToast(context, 'Work submitted for review');
+    } on ApiException catch (e) {
+      if (mounted) showVToast(context, e.message);
+    } finally {
+      await refreshContracts(ref);
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 }

@@ -228,7 +228,20 @@ class EscrowContract {
   final String avatarFg;
   final String initials;
   // Non-null when the freelancer was invited by email and hasn't joined Veritas yet.
+  // Always null for real (backend-sourced) contracts — the backend has no
+  // pending-invite concept, the freelancer must already have an account.
   final String? inviteeEmail;
+  // Real backend party IDs — null for local-only/mock contracts. Present on
+  // every contract fetched from the API, and used to determine per-contract
+  // whether the current user is the client or freelancer (the backend is
+  // symmetric: you can be a client on one contract and freelancer on
+  // another, unlike the app's role-switcher toggle which is just a filter).
+  final String? clientId;
+  final String? freelancerId;
+  // Real backend escrow status (pending/funded/active/disputed/completed/
+  // refunded/cancelled) — null for local-only/mock contracts, in which case
+  // statusBadge falls back to the milestone-based heuristic below.
+  final String? escrowStatus;
 
   EscrowContract({
     required this.id,
@@ -243,7 +256,12 @@ class EscrowContract {
     required this.avatarFg,
     required this.initials,
     this.inviteeEmail,
+    this.clientId,
+    this.freelancerId,
+    this.escrowStatus,
   });
+
+  bool isClientFor(String userId) => clientId == userId;
 
   bool get isPendingAcceptance => inviteeEmail != null;
 
@@ -259,14 +277,17 @@ class EscrowContract {
 
   String get statusBadge {
     if (isPendingAcceptance) return 'Awaiting';
-    if (milestones.every((m) => m.status == MilestoneStatus.released)) return 'Complete';
+    if (escrowStatus == 'disputed') return 'In dispute';
+    if (escrowStatus == 'completed') return 'Complete';
+    if (escrowStatus == 'refunded' || escrowStatus == 'cancelled') return 'Closed';
+    if (milestones.isNotEmpty && milestones.every((m) => m.status == MilestoneStatus.released)) return 'Complete';
     if (milestones.any((m) => m.status == MilestoneStatus.inDispute)) return 'In dispute';
     if (milestones.any((m) => m.status == MilestoneStatus.inReview || m.status == MilestoneStatus.submitted)) return 'In review';
     if (milestones.any((m) => m.status == MilestoneStatus.changesRequested)) return 'Changes req.';
     return 'Active';
   }
 
-  EscrowContract copyWith({List<MilestoneModel>? milestones, bool clearInvitee = false}) {
+  EscrowContract copyWith({List<MilestoneModel>? milestones, bool clearInvitee = false, String? escrowStatus}) {
     return EscrowContract(
       id: id,
       project: project,
@@ -280,6 +301,9 @@ class EscrowContract {
       avatarFg: avatarFg,
       initials: initials,
       inviteeEmail: clearInvitee ? null : this.inviteeEmail,
+      clientId: clientId,
+      freelancerId: freelancerId,
+      escrowStatus: escrowStatus ?? this.escrowStatus,
     );
   }
 }

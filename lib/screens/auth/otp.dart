@@ -51,6 +51,11 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       // Wallet fetch failing shouldn't block sign-in — balance just shows
       // as 0 until the next successful refresh.
     }
+    try {
+      await refreshContracts(ref);
+    } catch (_) {
+      // Same — contracts list just stays empty until the next refresh.
+    }
     if (!mounted) return;
 
     ref.read(isLoggedInProvider.notifier).state = true;
