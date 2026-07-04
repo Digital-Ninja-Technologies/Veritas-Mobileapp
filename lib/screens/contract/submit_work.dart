@@ -127,16 +127,17 @@ class _SubmitWorkScreenState extends ConsumerState<SubmitWorkScreen> {
 
   void _submit() async {
     setState(() => _submitting = true);
-    // Optimistic local update — the note/link only live locally, the
-    // backend's deliver endpoint has no field for them.
+    final note = _noteCtrl.text.trim();
+    final link = _linkCtrl.text.trim();
+    // Optimistic local update.
     final updated = widget.milestone.copyWith(
       status: MilestoneStatus.submitted,
-      deliveryNote: _noteCtrl.text.trim(),
-      deliveryLink: _linkCtrl.text.trim().isEmpty ? null : _linkCtrl.text.trim(),
+      deliveryNote: note,
+      deliveryLink: link.isEmpty ? null : link,
     );
     ref.read(contractsProvider.notifier).updateMilestone(widget.contractId, widget.milestone.id, updated);
     try {
-      await ref.read(escrowServiceProvider).markMilestoneDelivered(widget.milestone.id);
+      await ref.read(escrowServiceProvider).markMilestoneDelivered(widget.milestone.id, note: note, link: link);
       if (!mounted) return;
       Navigator.of(context).pop();
       showVToast(context, 'Work submitted for review');

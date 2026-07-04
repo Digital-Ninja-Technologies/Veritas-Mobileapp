@@ -65,6 +65,9 @@ class RemoteMilestone {
   final String description;
   final int amountKobo;
   final String status;
+  final String deliveryNote;
+  final String deliveryLink;
+  final String revisionNote;
   final DateTime? dueAt;
 
   RemoteMilestone({
@@ -74,6 +77,9 @@ class RemoteMilestone {
     required this.description,
     required this.amountKobo,
     required this.status,
+    this.deliveryNote = '',
+    this.deliveryLink = '',
+    this.revisionNote = '',
     this.dueAt,
   });
 
@@ -84,6 +90,9 @@ class RemoteMilestone {
         description: (json['description'] as String?) ?? '',
         amountKobo: (json['amount_kobo'] as num).toInt(),
         status: json['status'] as String,
+        deliveryNote: (json['delivery_note'] as String?) ?? '',
+        deliveryLink: (json['delivery_link'] as String?) ?? '',
+        revisionNote: (json['revision_note'] as String?) ?? '',
         dueAt: json['due_at'] != null ? DateTime.parse(json['due_at'] as String) : null,
       );
 }
@@ -124,6 +133,7 @@ class RemoteTransaction {
   final String id;
   final String? escrowId;
   final String? milestoneId;
+  final String? walletId;
   final String type;
   final int amountKobo;
   final String status;
@@ -133,6 +143,7 @@ class RemoteTransaction {
     required this.id,
     this.escrowId,
     this.milestoneId,
+    this.walletId,
     required this.type,
     required this.amountKobo,
     required this.status,
@@ -143,6 +154,7 @@ class RemoteTransaction {
         id: json['id'] as String,
         escrowId: json['escrow_id'] as String?,
         milestoneId: json['milestone_id'] as String?,
+        walletId: json['wallet_id'] as String?,
         type: json['type'] as String,
         amountKobo: (json['amount_kobo'] as num).toInt(),
         status: json['status'] as String,
@@ -212,13 +224,24 @@ class EscrowService {
     return data.map((t) => RemoteTransaction.fromJson(t as Map<String, dynamic>)).toList();
   }
 
-  /// Freelancer marks a milestone delivered. No body — the backend has no
-  /// field for delivery notes/links, so those stay local-only display text.
-  Future<void> markMilestoneDelivered(String milestoneId) => api.post('/milestones/$milestoneId/deliver');
+  /// Freelancer marks a milestone delivered, optionally attaching a note
+  /// and/or a link to the delivered work.
+  Future<void> markMilestoneDelivered(String milestoneId, {String? note, String? link}) => api.post(
+        '/milestones/$milestoneId/deliver',
+        body: {
+          if (note != null && note.isNotEmpty) 'note': note,
+          if (link != null && link.isNotEmpty) 'link': link,
+        },
+      );
 
   /// Client approves — releases the milestone's share into the freelancer's
   /// wallet. No body needed.
   Future<void> approveMilestone(String milestoneId) => api.post('/milestones/$milestoneId/approve');
+
+  /// Client requests changes on a delivered milestone, sending it back to
+  /// the freelancer for redelivery.
+  Future<void> rejectMilestone(String milestoneId, String note) =>
+      api.post('/milestones/$milestoneId/reject', body: {'note': note});
 
   Future<RemoteDispute> raiseDispute(String escrowId, String reason) async {
     final json = await api.post('/escrows/$escrowId/dispute', body: {'reason': reason});
@@ -230,5 +253,13 @@ class EscrowService {
     final data = json?['data'];
     if (data == null) return null;
     return RemoteDispute.fromJson(data as Map<String, dynamic>);
+  }
+
+  /// Global activity feed — every transaction across the user's escrows and
+  /// wallet, most recent first.
+  Future<List<RemoteTransaction>> listMyTransactions() async {
+    final json = await api.get('/transactions');
+    final data = (json?['data'] as List?) ?? [];
+    return data.map((t) => RemoteTransaction.fromJson(t as Map<String, dynamic>)).toList();
   }
 }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme.dart';
 import '../../core/models.dart';
+import '../../providers/app_state.dart';
+import '../../services/api_client.dart';
 import '../../widgets/common.dart';
 
 class RequestChangesScreen extends ConsumerStatefulWidget {
@@ -16,6 +18,7 @@ class RequestChangesScreen extends ConsumerStatefulWidget {
 
 class _RequestChangesScreenState extends ConsumerState<RequestChangesScreen> {
   final _noteCtrl = TextEditingController();
+  bool _submitting = false;
 
   bool get _valid => _noteCtrl.text.trim().isNotEmpty;
 
@@ -89,8 +92,8 @@ class _RequestChangesScreenState extends ConsumerState<RequestChangesScreen> {
                     ),
                     const SizedBox(height: 24),
                     VButton(
-                      label: 'Send back for changes',
-                      onTap: _valid ? _notSupportedYet : null,
+                      label: _submitting ? 'Sending…' : 'Send back for changes',
+                      onTap: _valid && !_submitting ? _submit : null,
                       bg: const Color(0xFFFCE7DD),
                       fg: AppColors.orange,
                     ),
@@ -104,12 +107,19 @@ class _RequestChangesScreenState extends ConsumerState<RequestChangesScreen> {
     );
   }
 
-  // The backend only supports a binary deliver → approve flow for
-  // milestones — there's no request-changes/reject endpoint. Rather than
-  // fake success with a local-only state change (which the next contracts
-  // refresh would just overwrite), tell the client honestly: approve and
-  // ask for a revision as a new milestone, or raise a dispute instead.
-  void _notSupportedYet() {
-    showVToast(context, 'Not supported yet — approve or raise a dispute instead.');
+  void _submit() async {
+    setState(() => _submitting = true);
+    final note = _noteCtrl.text.trim();
+    try {
+      await ref.read(escrowServiceProvider).rejectMilestone(widget.milestone.id, note);
+      await refreshContracts(ref);
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      showVToast(context, 'Sent back to the freelancer for changes');
+    } on ApiException catch (e) {
+      if (mounted) showVToast(context, e.message);
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 }

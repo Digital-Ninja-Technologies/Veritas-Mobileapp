@@ -56,6 +56,11 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     } catch (_) {
       // Same — contracts list just stays empty until the next refresh.
     }
+    try {
+      await refreshTransactions(ref);
+    } catch (_) {
+      // Same — activity feed just stays empty until the next refresh.
+    }
     if (!mounted) return;
 
     ref.read(isLoggedInProvider.notifier).state = true;

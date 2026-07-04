@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme.dart';
 import '../../providers/app_state.dart';
 import '../../services/api_client.dart';
+import '../../services/auth_service.dart';
 import '../../services/escrow_service.dart';
 import '../../widgets/common.dart';
 
@@ -179,6 +180,31 @@ class _CreateEscrowScreenState extends ConsumerState<CreateEscrowScreen> {
   }
 
   // ─── Freelancer picker ────────────────────────────────────────────────────
+
+  /// Confirms `email` belongs to a registered Veritas account before letting
+  /// the caller select it — the backend rejects escrow creation for an
+  /// unregistered freelancer, so we surface that up front instead of only at
+  /// the funding step. Returns the resolved profile, or null (having already
+  /// shown a toast) if the email can't be used.
+  Future<PublicProfile?> _validateFreelancerEmail(String email) async {
+    final me = ref.read(userProvider);
+    if (me.email.trim().toLowerCase() == email.trim().toLowerCase()) {
+      showVToast(context, "You can't add yourself as the freelancer");
+      return null;
+    }
+    try {
+      final profile = await ref.read(authServiceProvider).lookupByEmail(email);
+      if (profile == null) {
+        showVToast(context, 'No Veritas account found for $email — ask them to sign up first.');
+        return null;
+      }
+      return profile;
+    } catch (_) {
+      showVToast(context, "Couldn't verify that email right now. Please try again.");
+      return null;
+    }
+  }
+
   void openFreelancerPicker() {
     final invCtrl = TextEditingController();
     showModalBottomSheet(
@@ -186,6 +212,7 @@ class _CreateEscrowScreenState extends ConsumerState<CreateEscrowScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => StatefulBuilder(builder: (ctx, ss) {
+        bool checking = false;
         return Container(
           decoration: const BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
           padding: EdgeInsets.fromLTRB(20, 10, 20, 28 + MediaQuery.of(ctx).viewInsets.bottom),
@@ -202,7 +229,17 @@ class _CreateEscrowScreenState extends ConsumerState<CreateEscrowScreen> {
                 child: Column(children: _kDirectory.map((f) {
                   final sel = _freelancer?.tag == f.tag;
                   return GestureDetector(
-                    onTap: () { setState(() => _freelancer = f); Navigator.of(ctx).pop(); },
+                    onTap: checking ? null : () async {
+                      ss(() => checking = true);
+                      final profile = await _validateFreelancerEmail(f.email);
+                      ss(() => checking = false);
+                      if (profile == null) return;
+                      setState(() => _freelancer = _FreelancerEntry(
+                            tag: f.tag, handle: f.handle, name: profile.fullName, email: f.email,
+                            avBg: f.avBg, avFg: f.avFg, rating: f.rating, verified: f.verified, skill: f.skill,
+                          ));
+                      if (ctx.mounted) Navigator.of(ctx).pop();
+                    },
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 9),
                       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
@@ -249,25 +286,33 @@ class _CreateEscrowScreenState extends ConsumerState<CreateEscrowScreen> {
               ),
               const SizedBox(width: 8),
               GestureDetector(
-                onTap: () {
+                onTap: checking ? null : () async {
                   final q = invCtrl.text.trim();
                   if (q.isEmpty) return;
                   final isEmail = q.contains('@') && q.contains('.');
-                  final found = _kDirectory.where((f) => f.email == q).firstOrNull;
-                  if (found != null) {
-                    setState(() => _freelancer = found);
-                  } else if (isEmail) {
-                    setState(() => _freelancer = _FreelancerEntry(tag: '', handle: q, name: q, email: q, avBg: '#EDEBD8', avFg: '#79775F', verified: false, skill: ''));
-                  } else {
+                  if (!isEmail) {
                     showVToast(context, 'Enter a valid email address');
                     return;
                   }
-                  Navigator.of(ctx).pop();
+                  ss(() => checking = true);
+                  final profile = await _validateFreelancerEmail(q);
+                  ss(() => checking = false);
+                  if (profile == null) return;
+                  setState(() => _freelancer = _FreelancerEntry(
+                        tag: '', handle: q, name: profile.fullName, email: q,
+                        avBg: '#EDEBD8', avFg: '#79775F', verified: false, skill: '',
+                      ));
+                  if (ctx.mounted) Navigator.of(ctx).pop();
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
                   decoration: BoxDecoration(color: AppColors.yellow, borderRadius: BorderRadius.circular(13)),
-                  child: const Text('Invite', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: AppColors.darkText)),
+                  child: checking
+                      ? const SizedBox(
+                          width: 15, height: 15,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.darkText),
+                        )
+                      : const Text('Invite', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: AppColors.darkText)),
                 ),
               ),
             ]),

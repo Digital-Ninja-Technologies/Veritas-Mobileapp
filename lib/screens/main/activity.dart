@@ -23,7 +23,10 @@ class ActivityScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
-        child: CustomScrollView(
+        child: RefreshIndicator(
+          onRefresh: () => refreshTransactions(ref),
+          child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             const SliverToBoxAdapter(
               child: Padding(
@@ -60,6 +63,7 @@ class ActivityScreen extends ConsumerWidget {
                 ),
               ),
           ],
+          ),
         ),
       ),
     );

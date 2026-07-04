@@ -2,6 +2,12 @@ import '../core/models.dart';
 import 'api_client.dart';
 import 'token_storage.dart';
 
+class PublicProfile {
+  final String id;
+  final String fullName;
+  PublicProfile({required this.id, required this.fullName});
+}
+
 class AuthService {
   final ApiClient api;
   final TokenStore tokenStorage;
@@ -26,6 +32,24 @@ class AuthService {
       return resolved;
     } catch (_) {
       return 'Veritas user';
+    }
+  }
+
+  /// Checks whether an email belongs to a registered Veritas account —
+  /// lets a client validate a prospective freelancer *before* submitting a
+  /// project, instead of only finding out when creation is rejected.
+  /// Returns null if no account is found; rethrows on any other failure
+  /// (e.g. network error) so the caller can distinguish "not found" from
+  /// "couldn't check right now".
+  Future<PublicProfile?> lookupByEmail(String email) async {
+    try {
+      final json = await api.get('/users/by-email?email=${Uri.encodeQueryComponent(email)}');
+      final data = json?['data'] as Map<String, dynamic>?;
+      if (data == null) return null;
+      return PublicProfile(id: data['id'] as String, fullName: data['full_name'] as String);
+    } on ApiException catch (e) {
+      if (e.statusCode == 404) return null;
+      rethrow;
     }
   }
 

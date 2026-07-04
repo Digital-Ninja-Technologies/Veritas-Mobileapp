@@ -28,6 +28,10 @@ Future<void> refreshWalletBalance(WidgetRef ref) async {
 /// backend and replaces the local contracts list.
 Future<void> refreshContracts(WidgetRef ref) => ref.read(contractsProvider.notifier).loadFromApi();
 
+/// Fetches the caller's real activity feed (escrow + wallet transactions)
+/// from the backend and replaces the local transactions list.
+Future<void> refreshTransactions(WidgetRef ref) => ref.read(transactionsProvider.notifier).loadFromApi();
+
 // Auth state
 final isLoggedInProvider = StateProvider<bool>((ref) => false);
 final onboardingCompleteProvider = StateProvider<bool>((ref) => false);
@@ -109,13 +113,17 @@ final contractsProvider = StateNotifierProvider<ContractsNotifier, List<EscrowCo
 
 /// Backend milestone status → local display status. "approved" is transient
 /// (approve+release happen in one backend call) so it's rarely observed at
-/// rest; "rejected" has no reachable path since there's no reject endpoint.
+/// rest.
 MilestoneStatus _mapMilestoneStatus(String backend) {
   switch (backend) {
     case 'delivered':
       return MilestoneStatus.submitted;
+    case 'changes_requested':
+      return MilestoneStatus.changesRequested;
     case 'released':
       return MilestoneStatus.released;
+    case 'rejected':
+      return MilestoneStatus.changesRequested;
     default:
       return MilestoneStatus.pending;
   }
@@ -160,6 +168,9 @@ class ContractsNotifier extends StateNotifier<List<EscrowContract>> {
                   title: m.title,
                   amount: (m.amountKobo / 100) / fxRate,
                   status: _mapMilestoneStatus(m.status),
+                  deliveryNote: m.deliveryNote.isEmpty ? null : m.deliveryNote,
+                  deliveryLink: m.deliveryLink.isEmpty ? null : m.deliveryLink,
+                  changeNote: m.revisionNote.isEmpty ? null : m.revisionNote,
                 ))
             .toList(),
         avatarBg: '#E3ECFF',
@@ -185,12 +196,81 @@ class ContractsNotifier extends StateNotifier<List<EscrowContract>> {
 
 // Transactions
 final transactionsProvider = StateNotifierProvider<TransactionsNotifier, List<TransactionModel>>((ref) {
-  final role = ref.watch(userProvider).role;
-  return TransactionsNotifier(role);
+  return TransactionsNotifier(ref);
 });
 
+String _txTitle(String type) {
+  switch (type) {
+    case 'wallet_topup':
+      return 'Funds added';
+    case 'wallet_withdrawal':
+      return 'Withdrawal to bank';
+    case 'wallet_debit':
+      return 'Escrow funded';
+    case 'release':
+      return 'Milestone released';
+    case 'refund':
+      return 'Escrow refunded';
+    case 'platform_fee':
+      return 'Platform fee';
+    default:
+      return 'Deposit';
+  }
+}
+
+String _txKind(String type) {
+  switch (type) {
+    case 'wallet_topup':
+      return 'topup';
+    case 'wallet_withdrawal':
+      return 'withdraw';
+    case 'wallet_debit':
+      return 'fund';
+    case 'release':
+      return 'release';
+    case 'refund':
+      return 'fund';
+    default:
+      return 'other';
+  }
+}
+
 class TransactionsNotifier extends StateNotifier<List<TransactionModel>> {
-  TransactionsNotifier(UserRole role) : super(seedTransactions(role));
+  final Ref _ref;
+  TransactionsNotifier(this._ref) : super([]);
+
+  /// Fetches every transaction touching the caller's escrows or wallet.
+  /// Direction (credit/debit) is determined by whether the transaction's
+  /// wallet_id is the caller's own wallet — a transaction can also surface
+  /// because it shares an escrow with the caller (e.g. a client sees the
+  /// "release" row that credited the freelancer's wallet), in which case
+  /// it's shown for visibility but not counted as money moving for the
+  /// caller.
+  Future<void> loadFromApi() async {
+    final escrowService = _ref.read(escrowServiceProvider);
+    final walletService = _ref.read(walletServiceProvider);
+
+    final remoteTxsFuture = escrowService.listMyTransactions();
+    final walletFuture = walletService.getWallet();
+    final remoteTxs = await remoteTxsFuture;
+    final myWalletId = (await walletFuture).id;
+
+    state = remoteTxs.map((t) {
+      final isMyWallet = t.walletId == myWalletId;
+      final isCredit = isMyWallet
+          ? (t.type == 'wallet_topup' || t.type == 'release' || t.type == 'refund')
+          : false;
+      return TransactionModel(
+        id: t.id,
+        title: _txTitle(t.type),
+        subtitle: t.status,
+        amount: (t.amountKobo / 100) / fxRate,
+        isCredit: isCredit,
+        date: t.createdAt,
+        kind: _txKind(t.type),
+      );
+    }).toList();
+  }
 
   void addTransaction(TransactionModel tx) {
     state = [tx, ...state];
