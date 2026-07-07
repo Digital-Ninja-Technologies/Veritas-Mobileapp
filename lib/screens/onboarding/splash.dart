@@ -132,27 +132,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       body: GestureDetector(
         onTap: _advance,
         child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ScaleTransition(
-                scale: _scaleAnim,
-                child: Image.asset(
-                  'assets/images/v-icon.png',
-                  width: 150,
-                  height: 74,
-                ),
-              ),
-              // const SizedBox(height: 24),
-              FadeTransition(
-                opacity: _fadeAnim,
-                child: Image.asset(
-                  'assets/images/v-text.png',
-                  width: 150,
-                  height: 74,
-                ),
-              ),
-            ],
+          child: Image.asset(
+            'assets/splash-Gif.gif',
+            // width: 200,
           ),
         ),
       ),

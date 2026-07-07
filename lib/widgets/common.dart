@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../core/theme.dart';
 
@@ -16,26 +15,14 @@ class VeritasLogo extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          width: size * 1.4,
-          height: size,
-          child: Stack(
-            children: [
-              Positioned(left: 0, child: _circle(size * 0.82)),
-              Positioned(left: size * 0.5, child: _circle(size * 0.82)),
-              Positioned(left: size * 1.0, child: _circle(size * 0.82)),
-            ],
-          ),
-        ),
+            width: size * 1.4,
+            height: size,
+            child: Image.asset('assets/images/v-icon.png')),
         const SizedBox(width: 8),
-        Text(
-          'Veritas',
-          style: GoogleFonts.istokWeb(
-            fontWeight: FontWeight.w700,
-            fontSize: size,
-            color: color,
-            letterSpacing: -0.3,
-          ),
-        ),
+        SizedBox(
+            width: size * 2,
+            height: size,
+            child: Image.asset('assets/images/v-text.png')),
       ],
     );
   }
