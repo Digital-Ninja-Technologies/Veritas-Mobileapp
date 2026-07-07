@@ -32,7 +32,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _fadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
         CurvedAnimation(parent: _ctrl, curve: const Interval(0.3, 1.0)));
     _ctrl.forward();
-    Future.delayed(const Duration(seconds: 1), _advance);
+    Future.delayed(const Duration(seconds: 2), _advance);
   }
 
   @override
