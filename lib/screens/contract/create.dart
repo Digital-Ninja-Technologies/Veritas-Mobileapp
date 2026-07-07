@@ -1010,7 +1010,8 @@ class _StepMilestones extends StatelessWidget {
                   decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                          color: Colors.white.withOpacity(0.08), width: 16)),
+                          color: Colors.white.withValues(alpha: 0.08),
+                          width: 16)),
                 )),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1029,7 +1030,7 @@ class _StepMilestones extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
                 decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.14),
+                    color: Colors.white.withValues(alpha: 0.14),
                     borderRadius: BorderRadius.circular(20)),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   Container(

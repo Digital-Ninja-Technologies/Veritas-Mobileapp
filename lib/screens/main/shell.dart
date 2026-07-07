@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/models.dart';
 import '../../core/theme.dart';
 import '../../providers/app_state.dart';
-import '../../core/models.dart';
-import 'home.dart';
-import 'contracts.dart';
-import 'activity.dart';
-import 'profile.dart';
 import '../contract/create.dart';
-import '../wallet/withdraw.dart';
+import 'activity.dart';
+import 'contracts.dart';
+import 'home.dart';
+import 'profile.dart';
 
 final currentTabProvider = StateProvider<int>((ref) => 0);
 
@@ -32,7 +32,11 @@ class MainShell extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: IndexedStack(
-        index: tab == 2 ? 0 : tab > 2 ? tab - 1 : tab,
+        index: tab == 2
+            ? 0
+            : tab > 2
+                ? tab - 1
+                : tab,
         children: [screens[0], screens[1], screens[3], screens[4]],
       ),
       bottomNavigationBar: _BottomNav(
@@ -42,7 +46,10 @@ class MainShell extends ConsumerWidget {
           if (i == 2) {
             // FAB action
             if (user.role == UserRole.client) {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateEscrowScreen()));
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const CreateEscrowScreen()));
             } else {
               showModalBottomSheet(
                 context: context,
@@ -78,17 +85,38 @@ class _BottomNav extends StatelessWidget {
     return Container(
       height: 82 + MediaQuery.of(context).padding.bottom,
       decoration: BoxDecoration(
-        color: AppColors.bg.withOpacity(0.95),
+        color: AppColors.bg.withValues(alpha: 0.95),
         border: const Border(top: BorderSide(color: AppColors.border)),
       ),
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
       child: Row(
         children: [
-          _NavItem(icon: Icons.home_outlined, filledIcon: Icons.home, label: 'Home', active: currentTab == 0, onTap: () => onTab(0)),
-          _NavItem(icon: Icons.description_outlined, filledIcon: Icons.description, label: 'Escrows', active: currentTab == 1, onTap: () => onTab(1)),
-          _FabItem(onTap: () => onTab(2), isClient: userRole == UserRole.client),
-          _NavItem(icon: Icons.schedule_outlined, filledIcon: Icons.schedule, label: 'Activity', active: currentTab == 3, onTap: () => onTab(3)),
-          _NavItem(icon: Icons.account_balance_wallet_outlined, filledIcon: Icons.account_balance_wallet, label: 'Wallet', active: currentTab == 4, onTap: () => onTab(4)),
+          _NavItem(
+              icon: Icons.home_outlined,
+              filledIcon: Icons.home,
+              label: 'Home',
+              active: currentTab == 0,
+              onTap: () => onTab(0)),
+          _NavItem(
+              icon: Icons.description_outlined,
+              filledIcon: Icons.description,
+              label: 'Escrows',
+              active: currentTab == 1,
+              onTap: () => onTab(1)),
+          _FabItem(
+              onTap: () => onTab(2), isClient: userRole == UserRole.client),
+          _NavItem(
+              icon: Icons.schedule_outlined,
+              filledIcon: Icons.schedule,
+              label: 'Activity',
+              active: currentTab == 3,
+              onTap: () => onTab(3)),
+          _NavItem(
+              icon: Icons.account_balance_wallet_outlined,
+              filledIcon: Icons.account_balance_wallet,
+              label: 'Wallet',
+              active: currentTab == 4,
+              onTap: () => onTab(4)),
         ],
       ),
     );
@@ -102,7 +130,12 @@ class _NavItem extends StatelessWidget {
   final bool active;
   final VoidCallback onTap;
 
-  const _NavItem({required this.icon, required this.filledIcon, required this.label, required this.active, required this.onTap});
+  const _NavItem(
+      {required this.icon,
+      required this.filledIcon,
+      required this.label,
+      required this.active,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -113,9 +146,14 @@ class _NavItem extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(active ? filledIcon : icon, color: active ? AppColors.dark : AppColors.subText, size: 24),
+            Icon(active ? filledIcon : icon,
+                color: active ? AppColors.dark : AppColors.subText, size: 24),
             const SizedBox(height: 4),
-            Text(label, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: active ? AppColors.dark : AppColors.subText)),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    color: active ? AppColors.dark : AppColors.subText)),
           ],
         ),
       ),
@@ -148,7 +186,12 @@ class _FabItem extends StatelessWidget {
                   color: AppColors.yellow,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: AppColors.bg, width: 3),
-                  boxShadow: [BoxShadow(color: AppColors.yellow.withOpacity(0.6), blurRadius: 18, offset: const Offset(0, 6))],
+                  boxShadow: [
+                    BoxShadow(
+                        color: AppColors.yellow.withValues(alpha: 0.6),
+                        blurRadius: 18,
+                        offset: const Offset(0, 6))
+                  ],
                 ),
                 child: Icon(
                   isClient ? Icons.add : Icons.upload_outlined,
@@ -164,11 +207,11 @@ class _FabItem extends StatelessWidget {
   }
 }
 
-class _FreelancerFab extends StatelessWidget {
+class _FreelancerFab extends ConsumerWidget {
   const _FreelancerFab();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
       decoration: const BoxDecoration(
@@ -178,8 +221,18 @@ class _FreelancerFab extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 20), decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2))),
-          const Text('What would you like to do?', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.darkText)),
+          Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(2))),
+          const Text('What would you like to do?',
+              style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.darkText)),
           const SizedBox(height: 16),
           _SheetOption(
             icon: Icons.upload_file_outlined,
@@ -192,12 +245,12 @@ class _FreelancerFab extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           _SheetOption(
-            icon: Icons.payments_outlined,
-            label: 'Request payment',
-            sub: 'Send an invoice for new work',
+            icon: Icons.handshake_outlined,
+            label: 'Accept contract',
+            sub: 'Review and accept a new contract',
             onTap: () {
               Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateEscrowScreen()));
+              ref.read(currentTabProvider.notifier).state = 1;
             },
           ),
         ],
@@ -212,7 +265,11 @@ class _SheetOption extends StatelessWidget {
   final String sub;
   final VoidCallback onTap;
 
-  const _SheetOption({required this.icon, required this.label, required this.sub, required this.onTap});
+  const _SheetOption(
+      {required this.icon,
+      required this.label,
+      required this.sub,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -227,14 +284,30 @@ class _SheetOption extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(width: 44, height: 44, decoration: BoxDecoration(color: AppColors.lightBg, borderRadius: BorderRadius.circular(12)), child: Icon(icon, color: AppColors.darkText, size: 22)),
+            Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                    color: AppColors.lightBg,
+                    borderRadius: BorderRadius.circular(12)),
+                child: Icon(icon, color: AppColors.darkText, size: 22)),
             const SizedBox(width: 14),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.darkText)),
-              const SizedBox(height: 2),
-              Text(sub, style: const TextStyle(fontSize: 12.5, color: AppColors.subText)),
-            ])),
-            const Icon(Icons.chevron_right, color: AppColors.mutedText, size: 20),
+            Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Text(label,
+                      style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.darkText)),
+                  const SizedBox(height: 2),
+                  Text(sub,
+                      style: const TextStyle(
+                          fontSize: 12.5, color: AppColors.subText)),
+                ])),
+            const Icon(Icons.chevron_right,
+                color: AppColors.mutedText, size: 20),
           ],
         ),
       ),

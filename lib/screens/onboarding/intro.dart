@@ -1,22 +1,25 @@
 import 'package:flutter/material.dart';
+
 import '../../core/theme.dart';
-import '../../widgets/common.dart';
 import 'auth_choice.dart';
 
 const _slides = [
   (
     title: 'We give freelancers & clients\npeace of mind',
-    body: 'Your money is held safely in escrow. The client can\'t pay late, and the freelancer can\'t disappear with funds.',
+    body:
+        'Your money is held safely in escrow. The client can\'t pay late, and the freelancer can\'t disappear with funds.',
     image: 'assets/images/vault-lock.png',
   ),
   (
     title: 'Receive payments locally\nwith ease',
-    body: 'Get paid in USD, withdraw in NGN, KES, GHS or any local currency — at fair FX rates, with no hidden charges.',
+    body:
+        'Get paid in USD, withdraw in NGN, KES, GHS or any local currency — at fair FX rates, with no hidden charges.',
     image: 'assets/images/vault-2.png',
   ),
   (
     title: 'Swift escrow and\nglobal payment',
-    body: 'Create a contract, fund it in minutes, and release milestones as work is delivered. Both parties protected.',
+    body:
+        'Create a contract, fund it in minutes, and release milestones as work is delivered. Both parties protected.',
     image: 'assets/images/vault-3.png',
   ),
 ];
@@ -28,7 +31,8 @@ class IntroScreen extends StatefulWidget {
   State<IntroScreen> createState() => _IntroScreenState();
 }
 
-class _IntroScreenState extends State<IntroScreen> with SingleTickerProviderStateMixin {
+class _IntroScreenState extends State<IntroScreen>
+    with SingleTickerProviderStateMixin {
   int _index = 0;
   late PageController _pageCtrl;
 
@@ -46,7 +50,8 @@ class _IntroScreenState extends State<IntroScreen> with SingleTickerProviderStat
 
   void _next() {
     if (_index < _slides.length - 1) {
-      _pageCtrl.nextPage(duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
+      _pageCtrl.nextPage(
+          duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
     } else {
       _goAuth();
     }
@@ -68,19 +73,24 @@ class _IntroScreenState extends State<IntroScreen> with SingleTickerProviderStat
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
               child: Row(
-                children: List.generate(_slides.length, (i) => Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(right: i < _slides.length - 1 ? 6 : 0),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      height: 7,
-                      decoration: BoxDecoration(
-                        color: i <= _index ? AppColors.yellow : AppColors.lightBg,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                    ),
-                  ),
-                )),
+                children: List.generate(
+                    _slides.length,
+                    (i) => Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                                right: i < _slides.length - 1 ? 6 : 0),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              height: 7,
+                              decoration: BoxDecoration(
+                                color: i <= _index
+                                    ? AppColors.yellow
+                                    : AppColors.lightBg,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                          ),
+                        )),
               ),
             ),
             Expanded(
@@ -101,7 +111,10 @@ class _IntroScreenState extends State<IntroScreen> with SingleTickerProviderStat
                       padding: EdgeInsets.all(8),
                       child: Text(
                         'Skip',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.subText),
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.subText),
                       ),
                     ),
                   ),
@@ -114,17 +127,28 @@ class _IntroScreenState extends State<IntroScreen> with SingleTickerProviderStat
                         decoration: BoxDecoration(
                           color: AppColors.yellow,
                           borderRadius: BorderRadius.circular(14),
-                          boxShadow: [BoxShadow(color: AppColors.yellow.withOpacity(0.5), blurRadius: 20, offset: const Offset(0, 8))],
+                          boxShadow: [
+                            BoxShadow(
+                                color: AppColors.yellow.withValues(alpha: 0.5),
+                                blurRadius: 20,
+                                offset: const Offset(0, 8))
+                          ],
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              _index < _slides.length - 1 ? 'Continue' : 'Get Started',
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.darkText),
+                              _index < _slides.length - 1
+                                  ? 'Continue'
+                                  : 'Get Started',
+                              style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.darkText),
                             ),
                             const SizedBox(width: 9),
-                            const Icon(Icons.arrow_forward, color: AppColors.darkText, size: 18),
+                            const Icon(Icons.arrow_forward,
+                                color: AppColors.darkText, size: 18),
                           ],
                         ),
                       ),
@@ -186,7 +210,10 @@ class _SlidePage extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
-                        colors: [AppColors.yellow.withOpacity(0.45), AppColors.yellow.withOpacity(0)],
+                        colors: [
+                          AppColors.yellow.withValues(alpha: 0.45),
+                          AppColors.yellow.withValues(alpha: 0)
+                        ],
                       ),
                     ),
                   ),
@@ -201,7 +228,8 @@ class _SlidePage extends StatelessWidget {
                         color: AppColors.lightBg,
                         borderRadius: BorderRadius.circular(24),
                       ),
-                      child: const Icon(Icons.lock_outline, size: 80, color: AppColors.subText),
+                      child: const Icon(Icons.lock_outline,
+                          size: 80, color: AppColors.subText),
                     ),
                   ),
                 ],

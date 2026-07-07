@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../core/theme.dart';
 import '../../providers/app_state.dart';
 import '../../services/api_client.dart';
@@ -29,14 +30,19 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
   }
 
   Future<void> _load() async {
-    setState(() { _error = null; _details = null; });
+    setState(() {
+      _error = null;
+      _details = null;
+    });
     try {
       final details = await ref.read(walletServiceProvider).fundWallet();
       if (mounted) setState(() => _details = details);
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
-      if (mounted) setState(() => _error = 'Could not load your funding details. Please try again.');
+      if (mounted)
+        setState(() =>
+            _error = 'Could not load your funding details. Please try again.');
     }
   }
 
@@ -53,7 +59,11 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                 children: [
                   const VBackButton(),
                   const SizedBox(width: 14),
-                  const Text('Add funds', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.darkText)),
+                  const Text('Add funds',
+                      style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.darkText)),
                 ],
               ),
             ),
@@ -74,7 +84,9 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
             children: [
               const Icon(Icons.error_outline, color: AppColors.red, size: 40),
               const SizedBox(height: 12),
-              Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.subText2)),
+              Text(_error!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppColors.subText2)),
               const SizedBox(height: 20),
               VButton(label: 'Try again', onTap: _load),
             ],
@@ -84,7 +96,8 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
     }
 
     if (_details == null) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.dark));
+      return const Center(
+          child: CircularProgressIndicator(color: AppColors.dark));
     }
 
     final details = _details!;
@@ -93,38 +106,60 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Transfer to your Veritas account', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.darkText, letterSpacing: -0.5)),
+          const Text('Transfer to your Veritas account',
+              style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.darkText,
+                  letterSpacing: -0.5)),
           const SizedBox(height: 8),
           const Text(
             'Send any amount from your bank app to the account below. Your Veritas balance updates automatically once the transfer is confirmed — usually within a few minutes.',
-            style: TextStyle(fontSize: 14, color: AppColors.subText2, height: 1.5),
+            style:
+                TextStyle(fontSize: 14, color: AppColors.subText2, height: 1.5),
           ),
           const SizedBox(height: 24),
           Container(
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(color: AppColors.dark, borderRadius: BorderRadius.circular(20)),
+            decoration: BoxDecoration(
+                color: AppColors.dark, borderRadius: BorderRadius.circular(20)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Bank', style: TextStyle(fontSize: 13, color: Color(0xFFC9C6A6))),
+                const Text('Bank',
+                    style: TextStyle(fontSize: 13, color: Color(0xFFC9C6A6))),
                 const SizedBox(height: 4),
-                Text(details.bankName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)),
+                Text(details.bankName,
+                    style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white)),
                 const SizedBox(height: 18),
-                const Text('Account number', style: TextStyle(fontSize: 13, color: Color(0xFFC9C6A6))),
+                const Text('Account number',
+                    style: TextStyle(fontSize: 13, color: Color(0xFFC9C6A6))),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Text(details.accountNumber, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 1)),
+                    Text(details.accountNumber,
+                        style: const TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: 1)),
                     const SizedBox(width: 10),
                     GestureDetector(
                       onTap: () {
-                        Clipboard.setData(ClipboardData(text: details.accountNumber));
+                        Clipboard.setData(
+                            ClipboardData(text: details.accountNumber));
                         showVToast(context, 'Account number copied');
                       },
                       child: Container(
                         padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                        child: const Icon(Icons.copy, color: AppColors.yellow, size: 16),
+                        decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10)),
+                        child: const Icon(Icons.copy,
+                            color: AppColors.yellow, size: 16),
                       ),
                     ),
                   ],
@@ -136,7 +171,11 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
           const Row(children: [
             Icon(Icons.info_outline, size: 14, color: AppColors.subText),
             SizedBox(width: 6),
-            Expanded(child: Text('This account is yours alone — reuse it any time you want to add funds.', style: TextStyle(fontSize: 12.5, color: AppColors.subText))),
+            Expanded(
+                child: Text(
+                    'This account is yours alone — reuse it any time you want to add funds.',
+                    style:
+                        TextStyle(fontSize: 12.5, color: AppColors.subText))),
           ]),
           const SizedBox(height: 28),
           VButton(label: 'Done', onTap: () => Navigator.of(context).pop()),

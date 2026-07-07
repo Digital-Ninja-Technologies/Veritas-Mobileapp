@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/theme.dart';
+
 import '../../core/models.dart';
+import '../../core/theme.dart';
 import '../../providers/app_state.dart';
 import '../../services/api_client.dart';
 import '../../widgets/common.dart';
@@ -22,16 +23,22 @@ class _WithdrawScreenState extends ConsumerState<WithdrawScreen> {
   // The 0.9% fee here is a local display estimate only — the backend
   // withdrawal itself doesn't charge or deduct a platform fee, this just
   // mirrors what the existing UI already showed pre-integration.
-  double get _amount => double.tryParse(_amountCtrl.text.replaceAll(',', '')) ?? 0;
+  double get _amount =>
+      double.tryParse(_amountCtrl.text.replaceAll(',', '')) ?? 0;
   bool get _isFreelancer => ref.read(userProvider).role == UserRole.freelancer;
   double get _fee => _amount * 0.009;
   double get _netAmount => _amount - _fee;
   double get _ngnAmount => _netAmount * fxRate;
   double get _maxBalance => ref.read(userProvider).balance;
-  PayoutAccount? get _defaultAccount =>
-      ref.read(userProvider).payoutAccounts.where((a) => a.isDefault).firstOrNull;
+  PayoutAccount? get _defaultAccount => ref
+      .read(userProvider)
+      .payoutAccounts
+      .where((a) => a.isDefault)
+      .firstOrNull;
   bool get _valid =>
-      _amount > 0 && _amount <= _maxBalance && (_defaultAccount?.bankCode.isNotEmpty ?? false);
+      _amount > 0 &&
+      _amount <= _maxBalance &&
+      (_defaultAccount?.bankCode.isNotEmpty ?? false);
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +65,11 @@ class _WithdrawScreenState extends ConsumerState<WithdrawScreen> {
                 children: [
                   const VBackButton(),
                   const SizedBox(width: 14),
-                  Text(_isFreelancer ? 'Withdraw to NGN' : 'Withdraw USD', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.darkText)),
+                  Text(_isFreelancer ? 'Withdraw to NGN' : 'Withdraw USD',
+                      style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.darkText)),
                 ],
               ),
             ),
@@ -71,43 +82,76 @@ class _WithdrawScreenState extends ConsumerState<WithdrawScreen> {
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(color: AppColors.dark, borderRadius: BorderRadius.circular(20)),
+                      decoration: BoxDecoration(
+                          color: AppColors.dark,
+                          borderRadius: BorderRadius.circular(20)),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Amount to withdraw', style: TextStyle(fontSize: 13, color: Color(0xFFC9C6A6))),
+                          const Text('Amount to withdraw',
+                              style: TextStyle(
+                                  fontSize: 13, color: Color(0xFFC9C6A6))),
                           const SizedBox(height: 12),
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              const Text('\$', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: Colors.white)),
+                              const Text('\$',
+                                  style: TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white)),
                               const SizedBox(width: 4),
                               Expanded(
                                 child: TextField(
                                   controller: _amountCtrl,
                                   keyboardType: TextInputType.number,
                                   onChanged: (_) => setState(() {}),
-                                  style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -1),
+                                  style: const TextStyle(
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                      letterSpacing: -1),
                                   decoration: const InputDecoration(
                                     hintText: '0.00',
-                                    hintStyle: TextStyle(fontSize: 36, fontWeight: FontWeight.w800, color: Color(0xFF5C5320), letterSpacing: -1),
-                                    border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none,
-                                    fillColor: Colors.transparent, filled: false,
+                                    hintStyle: TextStyle(
+                                        fontSize: 36,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF5C5320),
+                                        letterSpacing: -1),
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    fillColor: Colors.transparent,
+                                    filled: false,
                                   ),
                                 ),
                               ),
                               GestureDetector(
-                                onTap: () { _amountCtrl.text = _maxBalance.toStringAsFixed(2); setState(() {}); },
+                                onTap: () {
+                                  _amountCtrl.text =
+                                      _maxBalance.toStringAsFixed(2);
+                                  setState(() {});
+                                },
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                  decoration: BoxDecoration(color: AppColors.yellow.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
-                                  child: const Text('Max', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.yellow)),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                      color: AppColors.yellow
+                                          .withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(10)),
+                                  child: const Text('Max',
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.yellow)),
                                 ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 8),
-                          Text('Available: ${formatUSD(_maxBalance)}', style: const TextStyle(fontSize: 12.5, color: Color(0xFF9C9A7C))),
+                          Text('Available: ${formatUSD(_maxBalance)}',
+                              style: const TextStyle(
+                                  fontSize: 12.5, color: Color(0xFF9C9A7C))),
                         ],
                       ),
                     ),
@@ -115,51 +159,97 @@ class _WithdrawScreenState extends ConsumerState<WithdrawScreen> {
                     if (_amount > 0) ...[
                       Container(
                         padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(16)),
+                        decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: AppColors.border),
+                            borderRadius: BorderRadius.circular(16)),
                         child: Column(children: [
                           _Row('Amount', formatUSD(_amount)),
                           _Row('Fee (0.9%)', '- ${formatUSD(_fee)}'),
-                          if (_isFreelancer) _Row('\$1 = ₦${fxRate.toStringAsFixed(2)}', ''),
+                          if (_isFreelancer)
+                            _Row('\$1 = ₦${fxRate.toStringAsFixed(2)}', ''),
                           const Divider(height: 20, color: AppColors.border),
-                          _Row('You receive', _isFreelancer ? formatNGN(_netAmount) : formatUSD(_netAmount), bold: true),
+                          _Row(
+                              'You receive',
+                              _isFreelancer
+                                  ? formatNGN(_netAmount)
+                                  : formatUSD(_netAmount),
+                              bold: true),
                         ]),
                       ),
                       const SizedBox(height: 14),
                     ],
                     // Bank
-                    const Text('Payout account', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.subText2)),
+                    const Text('Payout account',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.subText2)),
                     const SizedBox(height: 9),
                     Consumer(builder: (_, ref, __) {
                       final user = ref.watch(userProvider);
-                      final account = user.payoutAccounts.where((a) => a.isDefault).firstOrNull;
+                      final account = user.payoutAccounts
+                          .where((a) => a.isDefault)
+                          .firstOrNull;
                       return Container(
                         padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(14)),
+                        decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: AppColors.border),
+                            borderRadius: BorderRadius.circular(14)),
                         child: Row(children: [
-                          Container(width: 40, height: 40, decoration: BoxDecoration(color: const Color(0xFFE8F5EF), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.account_balance_outlined, color: AppColors.greenDark, size: 18)),
+                          Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                  color: const Color(0xFFE8F5EF),
+                                  borderRadius: BorderRadius.circular(10)),
+                              child: const Icon(Icons.account_balance_outlined,
+                                  color: AppColors.greenDark, size: 18)),
                           const SizedBox(width: 12),
-                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(account?.bankName ?? 'No account', style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: AppColors.darkText)),
-                            const SizedBox(height: 1),
-                            Text(account?.accountNumber ?? 'Add a payout account', style: const TextStyle(fontSize: 12.5, color: AppColors.subText)),
-                          ])),
+                          Expanded(
+                              child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                Text(account?.bankName ?? 'No account',
+                                    style: const TextStyle(
+                                        fontSize: 14.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.darkText)),
+                                const SizedBox(height: 1),
+                                Text(
+                                    account?.accountNumber ??
+                                        'Add a payout account',
+                                    style: const TextStyle(
+                                        fontSize: 12.5,
+                                        color: AppColors.subText)),
+                              ])),
                         ]),
                       );
                     }),
                     if (!_isFreelancer) ...[
                       const SizedBox(height: 14),
                       const Row(children: [
-                        Icon(Icons.info_outline, size: 14, color: AppColors.subText),
+                        Icon(Icons.info_outline,
+                            size: 14, color: AppColors.subText),
                         SizedBox(width: 6),
-                        Text('No conversion · No hidden charges', style: TextStyle(fontSize: 12.5, color: AppColors.subText)),
+                        Text('No conversion · No hidden charges',
+                            style: TextStyle(
+                                fontSize: 12.5, color: AppColors.subText)),
                       ]),
                     ],
-                    if (_defaultAccount != null && _defaultAccount!.bankCode.isEmpty) ...[
+                    if (_defaultAccount != null &&
+                        _defaultAccount!.bankCode.isEmpty) ...[
                       const SizedBox(height: 10),
                       const Row(children: [
-                        Icon(Icons.warning_amber_outlined, size: 14, color: AppColors.gold),
+                        Icon(Icons.warning_amber_outlined,
+                            size: 14, color: AppColors.gold),
                         SizedBox(width: 6),
-                        Expanded(child: Text('This payout account is missing a bank code — edit it under Payout methods before withdrawing.', style: TextStyle(fontSize: 12.5, color: AppColors.gold))),
+                        Expanded(
+                            child: Text(
+                                'This payout account is missing a bank code — edit it under Payout methods before withdrawing.',
+                                style: TextStyle(
+                                    fontSize: 12.5, color: AppColors.gold))),
                       ]),
                     ],
                     const SizedBox(height: 24),
@@ -207,7 +297,11 @@ class _WithdrawScreenState extends ConsumerState<WithdrawScreen> {
           );
       await refreshWalletBalance(ref);
       final refId = 'WDR-${DateTime.now().millisecondsSinceEpoch % 10000}';
-      if (mounted) setState(() { _success = true; _successRef = refId; });
+      if (mounted)
+        setState(() {
+          _success = true;
+          _successRef = refId;
+        });
     } on ApiException catch (e) {
       if (mounted) showVToast(context, e.message);
     } catch (_) {
@@ -225,7 +319,12 @@ class _SuccessView extends StatelessWidget {
   final String ref2;
   final String bankLabel;
 
-  const _SuccessView({required this.isFreelancer, required this.amount, required this.ngnAmount, required this.ref2, required this.bankLabel});
+  const _SuccessView(
+      {required this.isFreelancer,
+      required this.amount,
+      required this.ngnAmount,
+      required this.ref2,
+      required this.bankLabel});
 
   @override
   Widget build(BuildContext context) {
@@ -241,27 +340,46 @@ class _SuccessView extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      width: 80, height: 80,
-                      decoration: BoxDecoration(color: const Color(0xFFE8F5EF), borderRadius: BorderRadius.circular(24)),
-                      child: const Icon(Icons.check, color: AppColors.greenDark, size: 40),
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                          color: const Color(0xFFE8F5EF),
+                          borderRadius: BorderRadius.circular(24)),
+                      child: const Icon(Icons.check,
+                          color: AppColors.greenDark, size: 40),
                     ),
                     const SizedBox(height: 24),
-                    const Text('Withdrawal successful!', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: AppColors.darkText, letterSpacing: -0.5)),
+                    const Text('Withdrawal successful!',
+                        style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.darkText,
+                            letterSpacing: -0.5)),
                     const SizedBox(height: 12),
                     Text(
                       isFreelancer
                           ? '${formatNGN(ngnAmount)} is on its way to your $bankLabel account.'
                           : '${formatUSD(amount)} is on its way to your $bankLabel account.',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 14.5, color: AppColors.subText2, height: 1.6),
+                      style: const TextStyle(
+                          fontSize: 14.5,
+                          color: AppColors.subText2,
+                          height: 1.6),
                     ),
                     const SizedBox(height: 24),
                     Container(
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(16)),
+                      decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: AppColors.border),
+                          borderRadius: BorderRadius.circular(16)),
                       child: Column(children: [
                         _InfoRow('Reference', ref2),
-                        _InfoRow('Amount', isFreelancer ? formatNGN(ngnAmount) : formatUSD(amount)),
+                        _InfoRow(
+                            'Amount',
+                            isFreelancer
+                                ? formatNGN(ngnAmount)
+                                : formatUSD(amount)),
                         _InfoRow('Est. arrival', '2–4 business hours'),
                         _InfoRow('Bank', bankLabel),
                       ]),
@@ -287,17 +405,30 @@ Widget _Row(String label, String value, {bool bold = false}) {
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(fontSize: 13.5, color: bold ? AppColors.darkText : AppColors.subText2, fontWeight: bold ? FontWeight.w700 : FontWeight.w400)),
-        Text(value, style: TextStyle(fontSize: 13.5, fontWeight: bold ? FontWeight.w800 : FontWeight.w600, color: AppColors.darkText)),
+        Text(label,
+            style: TextStyle(
+                fontSize: 13.5,
+                color: bold ? AppColors.darkText : AppColors.subText2,
+                fontWeight: bold ? FontWeight.w700 : FontWeight.w400)),
+        Text(value,
+            style: TextStyle(
+                fontSize: 13.5,
+                fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
+                color: AppColors.darkText)),
       ],
     ),
   );
 }
 
 Widget _InfoRow(String label, String value) => Padding(
-  padding: const EdgeInsets.symmetric(vertical: 5),
-  child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-    Text(label, style: const TextStyle(fontSize: 13.5, color: AppColors.subText2)),
-    Text(value, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppColors.darkText)),
-  ]),
-);
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        Text(label,
+            style: const TextStyle(fontSize: 13.5, color: AppColors.subText2)),
+        Text(value,
+            style: const TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w700,
+                color: AppColors.darkText)),
+      ]),
+    );

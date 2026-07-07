@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/models.dart';
 import '../services/api_client.dart';
@@ -38,11 +39,19 @@ final onboardingCompleteProvider = StateProvider<bool>((ref) => false);
 
 // User
 final userProvider = StateNotifierProvider<UserNotifier, UserModel>((ref) {
-  return UserNotifier();
+  return UserNotifier(ref.watch(tokenStorageProvider));
 });
 
 class UserNotifier extends StateNotifier<UserModel> {
-  UserNotifier() : super(const UserModel());
+  final TokenStore _storage;
+
+  UserNotifier(this._storage) : super(const UserModel());
+
+  @override
+  set state(UserModel value) {
+    super.state = value;
+    _storage.saveUser(jsonEncode(value.toJson()));
+  }
 
   /// Replaces user state wholesale with the result of a register/login/me
   /// call — local-only fields (role, KYC, payout accounts) fall back to

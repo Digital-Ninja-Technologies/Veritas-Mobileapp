@@ -1,9 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/models.dart';
 import '../../core/theme.dart';
 import '../../providers/app_state.dart';
-import '../../widgets/common.dart';
 import '../main/shell.dart';
 import 'intro.dart';
 
@@ -30,7 +32,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _fadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
         CurvedAnimation(parent: _ctrl, curve: const Interval(0.3, 1.0)));
     _ctrl.forward();
-    _advance();
+    Future.delayed(const Duration(seconds: 1), _advance);
   }
 
   @override
@@ -57,13 +59,33 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         pageBuilder: (_, __, ___) => const IntroScreen(),
         transitionsBuilder: (_, anim, __, child) =>
             FadeTransition(opacity: anim, child: child),
-        transitionDuration: const Duration(milliseconds: 200),
+        transitionDuration: const Duration(milliseconds: 100),
       ),
     );
   }
 
   Future<bool> _tryResumeSession() async {
     try {
+      final tokenStorage = ref.read(tokenStorageProvider);
+      final refreshToken = await tokenStorage.refreshToken;
+      if (refreshToken == null) return false;
+
+      final userJsonStr = await tokenStorage.user;
+      if (userJsonStr != null && userJsonStr.isNotEmpty) {
+        // Fast path: use cached user and refresh in background
+        final Map<String, dynamic> userMap = jsonDecode(userJsonStr);
+        final user = UserModel.fromJson(userMap);
+        ref.read(userProvider.notifier).applyAuthResult(user);
+        ref.read(isLoggedInProvider.notifier).state = true;
+        ref.read(onboardingCompleteProvider.notifier).state = true;
+
+        // Trigger background refresh
+        _backgroundRefresh();
+
+        return true;
+      }
+
+      // Slow path (no cached user)
       final refreshed = await ref.read(authServiceProvider).silentRefresh();
       if (!refreshed) return false;
 
@@ -72,20 +94,35 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       await refreshWalletBalance(ref);
       try {
         await refreshContracts(ref);
-      } catch (_) {
-        // Non-fatal — the contracts list just stays empty until the next refresh.
-      }
+      } catch (_) {}
       try {
         await refreshTransactions(ref);
-      } catch (_) {
-        // Non-fatal — the activity feed just stays empty until the next refresh.
-      }
+      } catch (_) {}
       ref.read(isLoggedInProvider.notifier).state = true;
       ref.read(onboardingCompleteProvider.notifier).state = true;
       return true;
     } catch (_) {
       return false;
     }
+  }
+
+  void _backgroundRefresh() async {
+    try {
+      final refreshed = await ref.read(authServiceProvider).silentRefresh();
+      if (!refreshed) return;
+
+      final user = await ref
+          .read(authServiceProvider)
+          .me(previous: ref.read(userProvider));
+      ref.read(userProvider.notifier).applyAuthResult(user);
+      await refreshWalletBalance(ref);
+      try {
+        await refreshContracts(ref);
+      } catch (_) {}
+      try {
+        await refreshTransactions(ref);
+      } catch (_) {}
+    } catch (_) {}
   }
 
   @override
@@ -100,12 +137,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             children: [
               ScaleTransition(
                 scale: _scaleAnim,
-                child: _VeritasSymbol(),
+                child: Image.asset(
+                  'assets/images/v-icon.png',
+                  width: 150,
+                  height: 74,
+                ),
               ),
-              const SizedBox(height: 24),
+              // const SizedBox(height: 24),
               FadeTransition(
                 opacity: _fadeAnim,
-                child: const VeritasLogo(size: 32, color: AppColors.darkText),
+                child: Image.asset(
+                  'assets/images/v-text.png',
+                  width: 150,
+                  height: 74,
+                ),
               ),
             ],
           ),

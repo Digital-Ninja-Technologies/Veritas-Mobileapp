@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../core/theme.dart';
+
 import '../../core/models.dart';
+import '../../core/theme.dart';
 import '../../providers/app_state.dart';
-import '../../widgets/common.dart';
 import '../wallet/transaction_receipt.dart';
 
 class ActivityScreen extends ConsumerWidget {
@@ -26,43 +26,54 @@ class ActivityScreen extends ConsumerWidget {
         child: RefreshIndicator(
           onRefresh: () => refreshTransactions(ref),
           child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(20, 16, 20, 16),
-                child: Text('Activity', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: AppColors.darkText, letterSpacing: -0.6)),
-              ),
-            ),
-            if (txs.isEmpty)
-              const SliverFillRemaining(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.receipt_long_outlined, size: 56, color: AppColors.subText),
-                      SizedBox(height: 16),
-                      Text('No transactions yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.darkText)),
-                    ],
-                  ),
-                ),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (_, i) {
-                      final entries = grouped.entries.toList();
-                      if (i == entries.length) return const SizedBox(height: 110);
-                      final entry = entries[i];
-                      return _TxGroup(date: entry.key, items: entry.value);
-                    },
-                    childCount: grouped.length + 1,
-                  ),
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(20, 16, 20, 16),
+                  child: Text('Activity',
+                      style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.darkText,
+                          letterSpacing: -0.6)),
                 ),
               ),
-          ],
+              if (txs.isEmpty)
+                const SliverFillRemaining(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.receipt_long_outlined,
+                            size: 56, color: AppColors.subText),
+                        SizedBox(height: 16),
+                        Text('No transactions yet',
+                            style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.darkText)),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (_, i) {
+                        final entries = grouped.entries.toList();
+                        if (i == entries.length)
+                          return const SizedBox(height: 110);
+                        final entry = entries[i];
+                        return _TxGroup(date: entry.key, items: entry.value);
+                      },
+                      childCount: grouped.length + 1,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),
@@ -91,10 +102,18 @@ class _TxGroup extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Text(date.toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.subText, letterSpacing: 0.6)),
+          child: Text(date.toUpperCase(),
+              style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.subText,
+                  letterSpacing: 0.6)),
         ),
         Container(
-          decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(18)),
+          decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: AppColors.border),
+              borderRadius: BorderRadius.circular(18)),
           child: Column(
             children: items.asMap().entries.map((e) {
               final isLast = e.key == items.length - 1;
@@ -121,7 +140,8 @@ class _TxRow extends StatelessWidget {
     final amtPrefix = tx.isCredit ? '+' : '-';
 
     return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TransactionReceiptScreen(tx: tx))),
+      onTap: () => Navigator.push(context,
+          MaterialPageRoute(builder: (_) => TransactionReceiptScreen(tx: tx))),
       child: Column(
         children: [
           Padding(
@@ -129,21 +149,38 @@ class _TxRow extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 40, height: 40,
-                  decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
+                  width: 40,
+                  height: 40,
+                  decoration:
+                      BoxDecoration(color: iconBg, shape: BoxShape.circle),
                   child: Icon(icon, color: iconFg, size: 18),
                 ),
                 const SizedBox(width: 13),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(tx.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.darkText)),
-                  const SizedBox(height: 2),
-                  Text(tx.subtitle, style: const TextStyle(fontSize: 12, color: AppColors.subText)),
-                ])),
-                Text('$amtPrefix${formatUSD(tx.amount)}', style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800, color: amtColor)),
+                Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                      Text(tx.title,
+                          style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.darkText)),
+                      const SizedBox(height: 2),
+                      Text(tx.subtitle,
+                          style: const TextStyle(
+                              fontSize: 12, color: AppColors.subText)),
+                    ])),
+                Text('$amtPrefix${formatUSD(tx.amount)}',
+                    style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w800,
+                        color: amtColor)),
               ],
             ),
           ),
-          if (!isLast) const Divider(height: 1, thickness: 1, color: Color(0xFFF1EFD6), indent: 16),
+          if (!isLast)
+            const Divider(
+                height: 1, thickness: 1, color: Color(0xFFF1EFD6), indent: 16),
         ],
       ),
     );
@@ -152,10 +189,23 @@ class _TxRow extends StatelessWidget {
 
 (Color, Color, IconData) _iconFor(String kind) {
   switch (kind) {
-    case 'release': return (const Color(0xFFE8F5EF), AppColors.greenDark, Icons.lock_open_outlined);
-    case 'withdraw': return (const Color(0xFFF0F4FF), AppColors.blue, Icons.download_outlined);
-    case 'topup': return (const Color(0xFFFFF9E0), AppColors.gold, Icons.add_circle_outline);
-    case 'fund': return (const Color(0xFFFFF0F0), AppColors.redDark, Icons.lock_outline);
-    default: return (AppColors.lightBg, AppColors.subText, Icons.swap_horiz);
+    case 'release':
+      return (
+        const Color(0xFFE8F5EF),
+        AppColors.greenDark,
+        Icons.lock_open_outlined
+      );
+    case 'withdraw':
+      return (const Color(0xFFF0F4FF), AppColors.blue, Icons.download_outlined);
+    case 'topup':
+      return (
+        const Color(0xFFFFF9E0),
+        AppColors.gold,
+        Icons.add_circle_outline
+      );
+    case 'fund':
+      return (const Color(0xFFFFF0F0), AppColors.redDark, Icons.lock_outline);
+    default:
+      return (AppColors.lightBg, AppColors.subText, Icons.swap_horiz);
   }
 }

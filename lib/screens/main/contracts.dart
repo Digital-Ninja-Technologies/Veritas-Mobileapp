@@ -58,16 +58,18 @@ class ContractsScreen extends ConsumerWidget {
                       const SizedBox(height: 16),
                       const Text('No contracts yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.darkText)),
                       const SizedBox(height: 8),
-                      const Text('Create your first escrow contract\nto get started.', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: AppColors.subText2, height: 1.5)),
-                      const SizedBox(height: 24),
-                      GestureDetector(
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateEscrowScreen())),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                          decoration: BoxDecoration(color: AppColors.yellow, borderRadius: BorderRadius.circular(14)),
-                          child: const Text('Create contract', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.darkText)),
+                      Text(isClient ? 'Create your first escrow contract\nto get started.' : 'Wait for a client to create\na contract with you.', textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: AppColors.subText2, height: 1.5)),
+                      if (isClient) ...[
+                        const SizedBox(height: 24),
+                        GestureDetector(
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateEscrowScreen())),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                            decoration: BoxDecoration(color: AppColors.yellow, borderRadius: BorderRadius.circular(14)),
+                            child: const Text('Create contract', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.darkText)),
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),

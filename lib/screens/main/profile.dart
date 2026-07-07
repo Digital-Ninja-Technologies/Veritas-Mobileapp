@@ -62,7 +62,7 @@ class ProfileScreen extends ConsumerWidget {
                         child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                          Text(user.fullName,
+                          Text(user.fullName.toString(),
                               style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w800,
@@ -101,7 +101,7 @@ class ProfileScreen extends ConsumerWidget {
                           width: 46,
                           height: 46,
                           decoration: BoxDecoration(
-                              color: AppColors.yellow.withOpacity(0.16),
+                              color: AppColors.yellow.withValues(alpha: 0.16),
                               borderRadius: BorderRadius.circular(13)),
                           child: const Icon(Icons.credit_card_outlined,
                               color: AppColors.yellow, size: 23),

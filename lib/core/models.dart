@@ -89,6 +89,72 @@ class UserModel {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'firstName': firstName,
+      'middleName': middleName,
+      'lastName': lastName,
+      'email': email,
+      'phone': phone,
+      'country': country,
+      'veritasTag': veritasTag,
+      'kycStatus': kycStatus.name,
+      'freelancerBalance': freelancerBalance,
+      'clientBalance': clientBalance,
+      'role': role.name,
+      'transactionPin': transactionPin,
+      'loginPassword': loginPassword,
+      'twoFaEnabled': twoFaEnabled,
+      'biometricEnabled': biometricEnabled,
+      'language': language,
+      'appearance': appearance,
+      'displayCurrency': displayCurrency,
+      'defaultPayoutId': defaultPayoutId,
+      // We skip payout accounts for simplicity or serialize them too
+      'payoutAccounts': payoutAccounts.map((a) => a.toJson()).toList(),
+    };
+  }
+
+  factory UserModel.fromJson(Map<String, dynamic> json) {
+    return UserModel(
+      id: json['id'] as String? ?? '',
+      firstName: json['firstName'] as String? ?? 'Amaka',
+      middleName: json['middleName'] as String? ?? '',
+      lastName: json['lastName'] as String? ?? 'Okafor',
+      email: json['email'] as String? ?? 'amaka@example.com',
+      phone: json['phone'] as String? ?? '+234 801 234 5678',
+      country: json['country'] as String? ?? 'Nigeria',
+      veritasTag: json['veritasTag'] as String?,
+      kycStatus: KycStatus.values.firstWhere((e) => e.name == json['kycStatus'], orElse: () => KycStatus.unverified),
+      freelancerBalance: (json['freelancerBalance'] as num?)?.toDouble() ?? 2350.00,
+      clientBalance: (json['clientBalance'] as num?)?.toDouble() ?? 4500.00,
+      role: UserRole.values.firstWhere((e) => e.name == json['role'], orElse: () => UserRole.freelancer),
+      transactionPin: json['transactionPin'] as String?,
+      loginPassword: json['loginPassword'] as String?,
+      twoFaEnabled: json['twoFaEnabled'] as bool? ?? true,
+      biometricEnabled: json['biometricEnabled'] as bool? ?? false,
+      language: json['language'] as String? ?? 'English',
+      appearance: json['appearance'] as String? ?? 'Light',
+      displayCurrency: json['displayCurrency'] as String? ?? 'USD',
+      defaultPayoutId: json['defaultPayoutId'] as String? ?? 'gtb1',
+      payoutAccounts: (json['payoutAccounts'] as List<dynamic>?)
+              ?.map((e) => PayoutAccount.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [
+            PayoutAccount(
+              id: 'gtb1',
+              bankName: 'GTBank',
+              bankCode: '058',
+              accountNumber: '• • • • 4502',
+              accountName: 'Amaka Okafor',
+              currency: 'NGN',
+              isDefault: true,
+            ),
+          ],
+    );
+  }
+
   UserModel copyWith({
     String? id,
     String? firstName,
@@ -167,6 +233,26 @@ class PayoutAccount {
         accountName: accountName,
         currency: currency,
         isDefault: isDefault ?? this.isDefault,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'bankName': bankName,
+        'bankCode': bankCode,
+        'accountNumber': accountNumber,
+        'accountName': accountName,
+        'currency': currency,
+        'isDefault': isDefault,
+      };
+
+  factory PayoutAccount.fromJson(Map<String, dynamic> json) => PayoutAccount(
+        id: json['id'] as String,
+        bankName: json['bankName'] as String,
+        bankCode: json['bankCode'] as String? ?? '',
+        accountNumber: json['accountNumber'] as String,
+        accountName: json['accountName'] as String,
+        currency: json['currency'] as String,
+        isDefault: json['isDefault'] as bool? ?? false,
       );
 }
 

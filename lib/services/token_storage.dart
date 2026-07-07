@@ -7,6 +7,8 @@ abstract class TokenStore {
   Future<void> save({required String accessToken, required String refreshToken});
   Future<String?> get accessToken;
   Future<String?> get refreshToken;
+  Future<void> saveUser(String userJson);
+  Future<String?> get user;
   Future<void> clear();
 }
 
@@ -15,6 +17,7 @@ abstract class TokenStore {
 class TokenStorage implements TokenStore {
   static const _accessKey = 'veritas_access_token';
   static const _refreshKey = 'veritas_refresh_token';
+  static const _userKey = 'veritas_user';
 
   final _storage = const FlutterSecureStorage();
 
@@ -28,10 +31,16 @@ class TokenStorage implements TokenStore {
   Future<String?> get accessToken => _storage.read(key: _accessKey);
   @override
   Future<String?> get refreshToken => _storage.read(key: _refreshKey);
+  
+  @override
+  Future<void> saveUser(String userJson) async => await _storage.write(key: _userKey, value: userJson);
+  @override
+  Future<String?> get user => _storage.read(key: _userKey);
 
   @override
   Future<void> clear() async {
     await _storage.delete(key: _accessKey);
     await _storage.delete(key: _refreshKey);
+    await _storage.delete(key: _userKey);
   }
 }

@@ -29,7 +29,10 @@ class FundingDetails {
   final String bankName;
   final String accountRef;
 
-  FundingDetails({required this.accountNumber, required this.bankName, required this.accountRef});
+  FundingDetails(
+      {required this.accountNumber,
+      required this.bankName,
+      required this.accountRef});
 
   factory FundingDetails.fromJson(Map<String, dynamic> json) => FundingDetails(
         accountNumber: (json['account_number'] as String?) ?? '',

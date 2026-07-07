@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import '../core/theme.dart';
 
 class VeritasLogo extends StatelessWidget {
   final double size;
   final Color color;
 
-  const VeritasLogo({super.key, this.size = 22, this.color = AppColors.darkText});
+  const VeritasLogo(
+      {super.key, this.size = 22, this.color = AppColors.darkText});
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +85,8 @@ class VButton extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (icon != null) ...[
-              Icon(icon, color: onTap == null ? AppColors.subText : fgColor, size: 18),
+              Icon(icon,
+                  color: onTap == null ? AppColors.subText : fgColor, size: 18),
               const SizedBox(width: 8),
             ],
             Text(
@@ -292,7 +295,8 @@ class VMenuItem extends StatelessWidget {
                   ),
                 ),
                 trailing ??
-                    const Icon(Icons.chevron_right, color: AppColors.mutedText, size: 18),
+                    const Icon(Icons.chevron_right,
+                        color: AppColors.mutedText, size: 18),
               ],
             ),
           ),
@@ -374,7 +378,8 @@ class VStatusBadge extends StatelessWidget {
   final Color bg;
   final Color fg;
 
-  const VStatusBadge({super.key, required this.label, required this.bg, required this.fg});
+  const VStatusBadge(
+      {super.key, required this.label, required this.bg, required this.fg});
 
   @override
   Widget build(BuildContext context) {
@@ -386,7 +391,8 @@ class VStatusBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: fg),
+        style:
+            TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: fg),
       ),
     );
   }
@@ -408,7 +414,12 @@ void showVToast(BuildContext context, String message) {
             decoration: BoxDecoration(
               color: AppColors.dark,
               borderRadius: BorderRadius.circular(30),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 8))],
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8))
+              ],
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -418,7 +429,10 @@ void showVToast(BuildContext context, String message) {
                 Flexible(
                   child: Text(
                     message,
-                    style: const TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -470,12 +484,20 @@ Future<bool?> showVConfirm(
               color: const Color(0xFFFFF3CC),
               borderRadius: BorderRadius.circular(18),
             ),
-            child: const Icon(Icons.lock_outline, color: AppColors.gold, size: 26),
+            child:
+                const Icon(Icons.lock_outline, color: AppColors.gold, size: 26),
           ),
           const SizedBox(height: 16),
-          Text(title, style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w800, color: AppColors.darkText, letterSpacing: -0.4)),
+          Text(title,
+              style: const TextStyle(
+                  fontSize: 21,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.darkText,
+                  letterSpacing: -0.4)),
           const SizedBox(height: 8),
-          Text(body, style: const TextStyle(fontSize: 14, color: AppColors.subText2, height: 1.55)),
+          Text(body,
+              style: const TextStyle(
+                  fontSize: 14, color: AppColors.subText2, height: 1.55)),
           const SizedBox(height: 24),
           Row(
             children: [
@@ -489,7 +511,12 @@ Future<bool?> showVConfirm(
                       border: Border.all(color: AppColors.border, width: 1.5),
                       borderRadius: BorderRadius.circular(15),
                     ),
-                    child: const Text('Cancel', textAlign: TextAlign.center, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.darkText)),
+                    child: const Text('Cancel',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.darkText)),
                   ),
                 ),
               ),
@@ -504,7 +531,14 @@ Future<bool?> showVConfirm(
                       color: confirmColor ?? AppColors.yellow,
                       borderRadius: BorderRadius.circular(15),
                     ),
-                    child: Text(confirmLabel, textAlign: TextAlign.center, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: confirmColor != null ? Colors.white : AppColors.darkText)),
+                    child: Text(confirmLabel,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: confirmColor != null
+                                ? Colors.white
+                                : AppColors.darkText)),
                   ),
                 ),
               ),
