@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -83,12 +85,15 @@ class _BottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 82 + MediaQuery.of(context).padding.bottom,
+      height:
+          (Platform.isIOS ? 62 : 82) + MediaQuery.of(context).padding.bottom,
       decoration: BoxDecoration(
         color: AppColors.bg.withValues(alpha: 0.95),
         border: const Border(top: BorderSide(color: AppColors.border)),
       ),
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
+      padding: Platform.isIOS
+          ? EdgeInsets.zero
+          : EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
       child: Row(
         children: [
           _NavItem(
