@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import '../core/models.dart';
 import 'api_client.dart';
 import 'token_storage.dart';
@@ -26,7 +28,8 @@ class AuthService {
     if (cached != null) return cached;
     try {
       final json = await api.get('/users/$userId');
-      final name = (json?['data'] as Map<String, dynamic>?)?['full_name'] as String?;
+      final name =
+          (json?['data'] as Map<String, dynamic>?)?['full_name'] as String?;
       final resolved = (name == null || name.isEmpty) ? 'Veritas user' : name;
       _nameCache[userId] = resolved;
       return resolved;
@@ -43,10 +46,13 @@ class AuthService {
   /// "couldn't check right now".
   Future<PublicProfile?> lookupByEmail(String email) async {
     try {
-      final json = await api.get('/users/by-email?email=${Uri.encodeQueryComponent(email)}');
+      final json = await api
+          .get('/users/by-email?email=${Uri.encodeQueryComponent(email)}');
+      log("res:${json}");
       final data = json?['data'] as Map<String, dynamic>?;
       if (data == null) return null;
-      return PublicProfile(id: data['id'] as String, fullName: data['full_name'] as String);
+      return PublicProfile(
+          id: data['id'] as String, fullName: data['full_name'] as String);
     } on ApiException catch (e) {
       if (e.statusCode == 404) return null;
       rethrow;
@@ -69,7 +75,8 @@ class AuthService {
     return UserModel.fromApi(json['user'] as Map<String, dynamic>);
   }
 
-  Future<UserModel> login({required String email, required String password}) async {
+  Future<UserModel> login(
+      {required String email, required String password}) async {
     final json = await api.post('/auth/login', auth: false, body: {
       'email': email,
       'password': password,
@@ -97,7 +104,8 @@ class AuthService {
 
   Future<UserModel> me({UserModel? previous}) async {
     final json = await api.get('/auth/me');
-    return UserModel.fromApi(json!['data'] as Map<String, dynamic>, previous: previous);
+    return UserModel.fromApi(json!['data'] as Map<String, dynamic>,
+        previous: previous);
   }
 
   Future<void> logout() => tokenStorage.clear();

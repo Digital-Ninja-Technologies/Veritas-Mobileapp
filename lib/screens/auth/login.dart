@@ -26,7 +26,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _loading = true);
     try {
       final user = await ref.read(authServiceProvider).login(
-            email: _emailCtrl.text.trim(),
+            email: _emailCtrl.text.trim().toLowerCase(),
             password: _pwdCtrl.text,
           );
       ref.read(userProvider.notifier).applyAuthResult(user);

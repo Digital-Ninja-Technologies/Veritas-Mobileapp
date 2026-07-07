@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../core/theme.dart';
 import '../../providers/app_state.dart';
 import '../../widgets/common.dart';
@@ -13,7 +14,8 @@ class SplashScreen extends ConsumerStatefulWidget {
   ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends ConsumerState<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
   late Animation<double> _scaleAnim;
   late Animation<double> _fadeAnim;
@@ -21,11 +23,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(duration: const Duration(milliseconds: 600), vsync: this);
-    _scaleAnim = Tween<double>(begin: 0.7, end: 1.0).animate(CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut));
-    _fadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _ctrl, curve: const Interval(0.3, 1.0)));
+    _ctrl = AnimationController(
+        duration: const Duration(milliseconds: 600), vsync: this);
+    _scaleAnim = Tween<double>(begin: 0.7, end: 1.0)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut));
+    _fadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
+        CurvedAnimation(parent: _ctrl, curve: const Interval(0.3, 1.0)));
     _ctrl.forward();
-    Future.delayed(const Duration(seconds: 2), _advance);
+    _advance();
   }
 
   @override
@@ -52,7 +57,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
         pageBuilder: (_, __, ___) => const IntroScreen(),
         transitionsBuilder: (_, anim, __, child) =>
             FadeTransition(opacity: anim, child: child),
-        transitionDuration: const Duration(milliseconds: 400),
+        transitionDuration: const Duration(milliseconds: 200),
       ),
     );
   }

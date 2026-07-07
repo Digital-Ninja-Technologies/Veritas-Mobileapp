@@ -191,6 +191,7 @@ class EscrowService {
     required DateTime deadlineAt,
     List<MilestoneInput> milestones = const [],
   }) async {
+    freelancerEmail = freelancerEmail.trim().toLowerCase();
     final json = await api.post('/escrows', body: {
       'title': title,
       'description': description,

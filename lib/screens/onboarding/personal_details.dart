@@ -122,7 +122,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                                     middleName: _middleCtrl.text,
                                     lastName: _lastCtrl.text,
                                     dob: _dobCtrl.text,
-                                    email: _emailCtrl.text,
+                                    email: _emailCtrl.text.trim().toLowerCase(),
                                     phone: widget.phone,
                                     country: widget.country,
                                   ),

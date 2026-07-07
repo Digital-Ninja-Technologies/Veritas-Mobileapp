@@ -112,7 +112,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     ref.read(userProvider.notifier).updateProfile(
       firstName: _firstCtrl.text.trim(),
       lastName: _lastCtrl.text.trim(),
-      email: _emailCtrl.text.trim(),
+      email: _emailCtrl.text.trim().toLowerCase(),
       phone: _phoneCtrl.text.trim(),
     );
     Navigator.of(context).pop();
